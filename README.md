@@ -1,8 +1,29 @@
-
 ### General
 - This project's objective is to develop a set of browser automation tooling
 - Its end user is non technical users, but the tools should be usable via CLI commands using the uv package manager as well as via python scripts, to be excecuted using uv as well (uv run ...)
 - The main() script should be on src/autoBilanceo/__init__.py
+
+### Implementation Progress
+
+#### 1. Authentication Module
+We've implemented secure browser automation for AFIP authentication with the following features:
+- Anti-detection measures
+- Human-like interaction patterns
+- Geolocation spoofing (Córdoba, Argentina)
+- Secure credential management via environment variables
+
+##### System Requirements
+Before running the automation, ensure you have the necessary dependencies:
+```bash
+# Install system dependencies
+sudo apt-get install libnss3 libnspr4 libasound2t64
+
+# Install browser binaries
+uv run playwright install
+```
+
+##### Environment Setup
+Create a `.env` file in your project root:
 
 ### Overview of the application flow - browser automation
 - Navigate to [Afip auth web](https://auth.afip.gob.ar/contribuyente_/login.xhtml)
