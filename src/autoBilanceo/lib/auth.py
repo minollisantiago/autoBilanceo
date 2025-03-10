@@ -53,8 +53,8 @@ class AFIPAuthenticator:
             viewport=random.choice(viewport_sizes),
             user_agent=random.choice(user_agents),
             locale='es-AR',  # Set Argentine Spanish locale
-            timezone_id='America/Argentina/Buenos_Aires',  # Set Argentine timezone
-            geolocation={'latitude': -34.6037, 'longitude': -58.3816},  # Buenos Aires coordinates
+            timezone_id='America/Argentina/Cordoba',  # Set Córdoba timezone
+            geolocation={'latitude': -31.4201, 'longitude': -64.1888},  # Córdoba coordinates
             permissions=['geolocation'],
             color_scheme='light',  # Prefer light mode
             
