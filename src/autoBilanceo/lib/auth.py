@@ -1,9 +1,10 @@
 import os
 import random
 import asyncio
-from typing import Optional
+from typing import Optional, TypedDict
 from dotenv import load_dotenv
 from playwright.async_api import Page, Browser, async_playwright
+from playwright._impl._api_structures import ViewportSize
 
 class AFIPAuthenticator:
     def __init__(self, headless: bool = False):
@@ -15,7 +16,7 @@ class AFIPAuthenticator:
     async def setup(self):
         """Initialize browser with anti-detection measures"""
         playwright = await async_playwright().start()
-        
+
         # List of common user agents to rotate randomly
         user_agents = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -23,13 +24,13 @@ class AFIPAuthenticator:
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/122.0.2365.66',
             'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
         ]
-        
+
         # Common screen resolutions
         viewport_sizes = [
-            {'width': 1920, 'height': 1080},
-            {'width': 1366, 'height': 768},
-            {'width': 1536, 'height': 864},
-            {'width': 1440, 'height': 900}
+            ViewportSize(width=1920, height=1080),
+            ViewportSize(width=1366, height=768),
+            ViewportSize(width=1536, height=864),
+            ViewportSize(width=1440, height=900)
         ]
 
         # Launch browser with enhanced anti-detection arguments
@@ -47,7 +48,7 @@ class AFIPAuthenticator:
                 f'--window-size={viewport_sizes[0]["width"]},{viewport_sizes[0]["height"]}'
             ]
         )
-        
+
         # Create context with randomized properties
         context = await self.browser.new_context(
             viewport=random.choice(viewport_sizes),
@@ -57,12 +58,12 @@ class AFIPAuthenticator:
             geolocation={'latitude': -31.4201, 'longitude': -64.1888},  # Córdoba coordinates
             permissions=['geolocation'],
             color_scheme='light',  # Prefer light mode
-            
+
             # Emulate common browser features
             has_touch=False,
             is_mobile=False,
             device_scale_factor=1,
-            
+
             # Add common HTTP headers
             extra_http_headers={
                 'Accept-Language': 'es-AR,es;q=0.9,en;q=0.8',
@@ -90,7 +91,7 @@ class AFIPAuthenticator:
         """)
 
         self.page = await context.new_page()
-        
+
         # Additional page-level configurations
         await self.page.set_extra_http_headers({
             'Sec-Fetch-Dest': 'document',
