@@ -25,78 +25,53 @@ uv run playwright install
 ##### Environment Setup
 Create a `.env` file in your project root:
 
-### Overview of the application flow - browser automation
-- Navigate to [Afip auth web](https://auth.afip.gob.ar/contribuyente_/login.xhtml)
-- Authenticate
-- Navigate to [Mis servicios](https://portalcf.cloud.afip.gob.ar/portal/app/mis-servicios)
-- Find the `Comprobantes en línea` service
-- Complete a form with invoice data and then send the form (POST request)
-- This process will be repeated n times (less than 200 times) asynchronously
-- The data needed to fill the invoice form each time will be either on a csv file or a google sheet in the form of an n * m matrix where n is going to be each invoice issuer and m is going to be the different fields needed to complete the invoice form, the auth data will be included on those m columns
+#### 2. Service Navigation Module
+We've implemented secure navigation to AFIP services with:
+- Service discovery and verification
+- New window/tab handling
+- Page state verification
+- CUIT re-verification at service entry
 
-##### Testing
-Two main test scripts are provided:
-1. `test_auth`: Tests authentication only
-```bash
-uv run test_auth
-```
-
-2. `test_auth_plus_navigation`: Tests full navigation flow
-```bash
-uv run test_service_comprobantes
-```
-
-#### Security Features
-
-1. **Browser Anti-Detection**:
-   - Custom user agent rotation
-   - Viewport randomization
-   - Geolocation spoofing (Córdoba)
-   - Timezone and locale configuration
-   - Disabled automation flags
-
-2. **Human-like Interaction**:
-   ```python
-   await asyncio.sleep(random.uniform(0.5, 1))  # Random delays
-   await element.type(char, delay=random.uniform(100, 300))  # Natural typing
-   ```
-
-3. **Verification Systems**:
-   - CUIT verification at login
-   - CUIT re-verification at service entry
-   - Page structure verification
-   - Service-specific element checks
-
-#### Next Steps in Development
-- [ ] Implement invoice form automation
-- [ ] Add CSV/Google Sheets integration
-- [ ] Implement concurrent processing
-- [ ] Add proper logging system
-- [ ] Implement error recovery mechanisms
+#### 3. Invoice Generation Module
+We've implemented the initial steps of invoice generation with:
+- Empresa selection handling
+- Navigation to invoice generator
+- Punto de venta and invoice type selection with validation
+- Human-like interaction patterns
 
 ### Overview of the application flow - browser automation
 - ✓ Navigate to [Afip auth web](https://auth.afip.gob.ar/contribuyente_/login.xhtml)
 - ✓ Authenticate
 - ✓ Navigate to [Mis servicios](https://portalcf.cloud.afip.gob.ar/portal/app/mis-servicios)
 - ✓ Find the `Comprobantes en línea` service
-- [ ] Complete a form with invoice data and then send the form (POST request)
-- [ ] This process will be repeated n times (less than 200 times) asynchronously
-- [ ] The data needed to fill the invoice form each time will be either on a csv file or a google sheet
+- ✓ Navigate to invoice generator
+- ✓ Select punto de venta and invoice type
+- [ ] Complete invoice form with data
+- [ ] Submit form and verify success
+- [ ] Implement batch processing
+- [ ] Add CSV/Google Sheets integration
 
-### Error Handling
-The system includes comprehensive error handling:
-- Authentication failures
-- Navigation timeouts
-- CUIT mismatches
-- Service availability issues
-- Page structure changes
+### Architecture
 
-### Development Guidelines
-1. Always maintain human-like interaction patterns
-2. Verify CUIT at critical steps
-3. Use verbose logging during development
-4. Keep service-specific code in dedicated modules
-5. Follow the existing modular architecture
+#### 1. Core Classes
+- **AFIPAuthenticator**: Handles authentication and anti-detection
+- **AFIPNavigator**: Manages service discovery and navigation
+- **AFIPOperator**: New generic class for service-specific operations
+
+#### 2. Service-Specific Modules
+Located in `lib/services/`:
+- **comprobantes.py**: Handles Comprobantes en línea service operations
+  - `verify_rcel_page()`: Verifies service page state
+  - `navigate_to_invoice_generator()`: Handles navigation to invoice generator
+  - `select_invoice_type()`: Manages punto de venta and invoice type selection
+
+#### 3. Models
+Located in `models/`:
+- **invoice_types.py**: Contains all invoice-related models and validation
+  - `IssuerType`: Enum for issuer categories
+  - `InvoiceType`: Enum for all available invoice types
+  - `PuntoVenta`: Model for punto de venta validation
+  - Validation functions for invoice type compatibility
 
 ### Input Validation
 
@@ -192,5 +167,42 @@ The validation system provides clear error messages:
 - Incompatible invoice type for issuer
 - Invalid character types
 - Length violations
+
+### Testing
+Test scripts are organized by service and functionality:
+
+1. `test_auth`: Tests authentication only
+```bash
+uv run test_auth
+```
+
+2. `test_service_comprobantes`: Tests Comprobantes en línea service navigation
+```bash
+uv run test_service_comprobantes
+```
+
+3. `test_select_invoice_type`: Tests invoice type selection process
+```bash
+uv run test_select_invoice_type
+```
+
+### Next Steps in Development
+- [ ] Complete invoice form automation
+- [ ] Add form data validation models
+- [ ] Implement form field mapping
+- [ ] Add CSV/Google Sheets integration
+- [ ] Implement concurrent processing
+- [ ] Add proper logging system
+- [ ] Implement error recovery mechanisms
+
+### Development Guidelines
+1. Always maintain human-like interaction patterns
+2. Verify CUIT at critical steps
+3. Use verbose logging during development
+4. Keep service-specific code in dedicated modules
+5. Follow the existing modular architecture
+6. Implement proper validation for all input parameters
+7. Use Pydantic models for data validation
+8. Handle new window/tab contexts properly
 
 
