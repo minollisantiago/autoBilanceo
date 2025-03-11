@@ -31,11 +31,11 @@ async def main():
                     operator = AFIPOperator(service_page)
 
                     # Navigate to invoice generation page
-                    if await operator.execute_operation(navigate_to_invoice_generator, {}, verbose=True):
+                    if await operator.execute_operation(navigate_to_invoice_generator, {"verbose": True}, verbose=True):
                         print("✓ Successfully navigated to invoice generator")
 
                         # Select invoice type
-                        if await operator.execute_operation(select_invoice_type, {}, verbose=True):
+                        if await operator.execute_operation(select_invoice_type, {"verbose": True}, verbose=True):
                             print("✓ Successfully selected invoice type")
 
                     else:

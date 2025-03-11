@@ -79,7 +79,6 @@ async def navigate_to_invoice_generator(page: Page, verbose: bool = False) -> bo
         # Wait for navigation after clicking the generate button
         await page.wait_for_load_state('networkidle')
 
-        if verbose: print("✓ Successfully navigated to invoice generator")
         return True
 
     except Exception as e:
@@ -164,7 +163,6 @@ async def select_invoice_type(page: Page, verbose: bool = False) -> bool:
         # Wait for navigation after clicking continue
         await page.wait_for_load_state('networkidle')
 
-        if verbose: print("✓ Successfully selected invoice type and continued")
         return True
 
     except Exception as e:
