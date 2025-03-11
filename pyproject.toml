@@ -18,7 +18,9 @@ dependencies = [
 
 [project.scripts]
 test_auth = "autoBilanceo.tests.test_auth:run"
-test_service_comprobantes = "autoBilanceo.tests.test_service_comprobantes:run"
+test_service_comprobantes = "autoBilanceo.tests.services.comprobantes.test_service_comprobantes:run"
+test_service_comprobantes_nav = "autoBilanceo.tests.services.comprobantes.test_nav_to_generator:run"
+test_service_comprobantes_select_invoice_type = "autoBilanceo.tests.services.comprobantes.test_select_invoice_type:run"
 
 [build-system]
 requires = ["hatchling"]

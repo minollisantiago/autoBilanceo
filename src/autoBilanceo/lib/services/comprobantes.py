@@ -1,8 +1,10 @@
 import os
-from playwright.async_api import Page
-import asyncio
 import random
+import asyncio
 from typing import Dict, Any
+from dotenv import load_dotenv
+from playwright.async_api import Page
+from ...models.invoice_types import InvoiceType, IssuerType, validate_invoice_type_for_issuer
 
 async def verify_rcel_page(page: Page) -> bool:
     """Verify RCEL (Comprobantes en línea) page and handle empresa selection"""
@@ -79,6 +81,83 @@ async def navigate_to_invoice_generator(page: Page, verbose: bool = False) -> bo
         print(f"⨯ Failed to navigate to invoice generator: {str(e)}")
         return False
 
+async def select_invoice_type(page: Page, verbose: bool = False) -> bool:
+    """
+    Select the punto de venta and invoice type from the select menus.
+    Validates the selections against environment variables and invoice type rules.
+
+    Environment variables used:
+    - PUNTO_VENTA: The punto de venta number (e.g., "00005")
+    - ISSUER_TYPE: The type of issuer (must be a valid IssuerType enum value)
+    - INVOICE_TYPE: The type of invoice to generate (must be a valid InvoiceType enum value)
+
+    Returns:
+        bool: True if selections were made successfully and validated
+    """
+    try:
+        load_dotenv()
+
+        # Get and validate args
+        if verbose: print(f"Validating punto de venta, invoice issuer and invoice type...")
+
+        punto_venta = os.getenv('PUNTO_VENTA')
+        if not punto_venta:
+            raise ValueError("PUNTO_VENTA not found in environment variables")
+
+        # Clean punto_venta value (remove leading zeros and spaces)
+        punto_venta_clean = punto_venta.lstrip('0').strip()
+
+        try:
+            issuer_type = IssuerType[os.getenv('ISSUER_TYPE', '')]
+            invoice_type = InvoiceType[os.getenv('INVOICE_TYPE', '')]
+        except (KeyError, ValueError) as e:
+            raise ValueError(f"Invalid ISSUER_TYPE or INVOICE_TYPE in environment variables: {str(e)}")
+
+        # Validate invoice type for issuer
+        if not validate_invoice_type_for_issuer(invoice_type, issuer_type):
+            raise ValueError(f"Invoice type {invoice_type.name} is not valid for issuer type {issuer_type.name}")
+
+        if verbose: print("✓ Valid punto de venta, invoice issuer and invoice type")
+
+        # Fill the punto de venta and invoice type forms
+        if verbose: print(f"Selecting punto de venta: {punto_venta}")
+
+        # Wait for and select punto de venta
+        punto_venta_selector = 'select#puntodeventa'
+        await page.wait_for_selector(punto_venta_selector, timeout=5000)
+        await asyncio.sleep(random.uniform(0.5, 1))
+
+        # Select punto de venta and wait for the second select to be populated
+        await page.select_option(punto_venta_selector, punto_venta_clean)
+        await asyncio.sleep(random.uniform(1, 1.5))  # Wait for AJAX call to complete
+
+        if verbose: print(f"Selecting invoice type: {invoice_type.name}")
+
+        # Wait for and select invoice type
+        invoice_type_selector = 'select#universocomprobante'
+        await page.wait_for_selector(invoice_type_selector, timeout=5000)
+        await asyncio.sleep(random.uniform(0.5, 1))
+
+        # Select invoice type using its value (which is the enum value)
+        await page.select_option(invoice_type_selector, str(invoice_type.value))
+        await asyncio.sleep(random.uniform(0.5, 1))
+
+        if verbose: print("Clicking [Continuar] button...")
+
+        # Click the continue button
+        continue_button_selector = 'input[type="button"][value="Continuar >"]'
+        await page.wait_for_selector(continue_button_selector, timeout=5000)
+        await page.click(continue_button_selector)
+
+        # Wait for navigation after clicking continue
+        await page.wait_for_load_state('networkidle')
+
+        print("✓ Successfully selected invoice type")
+        return True
+
+    except Exception as e:
+        print(f"⨯ Failed to select invoice type: {str(e)}")
+        return False
 
 async def fill_invoice_form(page: Page, form_data: Dict[str, Any]) -> bool:
     """
