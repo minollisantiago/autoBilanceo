@@ -56,16 +56,18 @@ class BillingPeriod(BaseModel):
         3. payment_due_date is not before today
         4. start_date is not after today
         """
+        now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
         if self.end_date.date < self.start_date.date:
             raise ValueError('End date cannot be before start date')
 
         if self.payment_due_date.date < self.end_date.date:
             raise ValueError('Payment due date cannot be before end date')
 
-        if self.payment_due_date.date < datetime.now().date():
+        if self.payment_due_date.date < now:
             raise ValueError('Payment due date cannot be before today')
 
-        if self.start_date.date > datetime.now().date():
+        if self.start_date.date > now:
             raise ValueError('Start date cannot be after today')
 
         return self
