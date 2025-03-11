@@ -89,15 +89,20 @@ The system implements strict validation for various invoice parameters using Pyd
 
 3. **Currency Validation**
    - Validates against AFIP's official currency codes
-   - Organized by geographical regions:
-     - Asian Currencies (e.g., Baht, Yuan, Yen)
-     - European Currencies (e.g., Euro, Pound Sterling)
-     - North American Currencies (e.g., USD, CAD)
-     - Central American and Caribbean Currencies
-     - South American Currencies
-     - Oceania Currencies
-     - African and Middle Eastern Currencies
-     - Special Units (e.g., Special Drawing Rights)
+   - Organized by geographical regions
+   - Supports all AFIP-recognized currencies
+
+4. **Issuance Data Validation**
+   - Date format validation (dd/mm/yyyy)
+   - Concept type validation (Products, Services, Both)
+   - Billing period validation for services
+   - Business rules enforcement:
+     - Dates must be after year 2000
+     - End date must be after start date
+     - Payment due date must be after end date
+     - Payment due date cannot be before today
+     - Start date cannot be after today
+     - Billing period required for services
 
 #### Code Examples
 
@@ -174,7 +179,50 @@ def example_validations():
         print(f"Valid currency code: {currency}")
     except ValueError as e:
         print(f"Invalid currency: {e}")
-```
+
+# 3. Issuance Data Validation Example
+class ConceptType(IntEnum):
+    """Concept types for invoices"""
+    PRODUCTOS = 1
+    SERVICIOS = 2
+    PRODUCTOS_Y_SERVICIOS = 3
+
+class IssuanceDate(BaseModel):
+    """Date validation for AFIP format"""
+    date: datetime
+
+    @field_validator('date')
+    @classmethod
+    def validate_date_format(cls, v: datetime) -> datetime:
+        if v < datetime(2000, 1, 1):
+            raise ValueError('Date must be after year 2000')
+        return v
+
+    def format_for_afip(self) -> str:
+        return self.date.strftime("%d/%m/%Y")
+
+# Usage Examples
+def example_issuance_validations():
+    try:
+        # Valid dates
+        issuance_date = IssuanceDate.from_string("11/03/2024")
+        
+        # Valid concept type
+        concept = ConceptType.SERVICIOS
+        
+        # Create billing period
+        billing_period = BillingPeriod(
+            start_date=IssuanceDate.from_string("01/03/2024"),
+            end_date=IssuanceDate.from_string("31/03/2024"),
+            payment_due_date=IssuanceDate.from_string("15/04/2024")
+        )
+        
+        # These will raise validation errors:
+        invalid_date = IssuanceDate.from_string("32/13/2024")  # Invalid date
+        past_due = IssuanceDate.from_string("01/01/1999")      # Before 2000
+        
+    except ValueError as e:
+        print(f"Validation error: {e}")
 
 #### Environment Variables
 The following environment variables are validated against these models:
@@ -183,6 +231,7 @@ PUNTO_VENTA = 00005
 ISSUER_TYPE = RESPONSABLE_INSCRIPTO
 INVOICE_TYPE = FACTURA_A
 CURRENCY = DOL  # USD Dollar code
+CONCEPT_TYPE = SERVICIOS
 ```
 
 #### Validation Rules Summary
@@ -209,12 +258,32 @@ CURRENCY = DOL  # USD Dollar code
      - "021": British Pound
      - "012": Brazilian Real
 
+5. **Issuance Data**:
+   - **Dates**:
+     - Format: dd/mm/yyyy
+     - Must be after year 2000
+     - Logical sequence for billing period
+   - **Concept Types**:
+     - PRODUCTOS (1)
+     - SERVICIOS (2)
+     - PRODUCTOS_Y_SERVICIOS (3)
+   - **Billing Period**:
+     - Required for services
+     - Start date ≤ End date
+     - Payment due date ≥ End date
+     - All dates validated against current date
+
 #### Error Handling
-The validation system provides clear error messages:
+The validation system provides clear error messages for:
 - Invalid punto de venta format
 - Incompatible invoice type for issuer
 - Invalid character types
 - Length violations
+- Invalid date formats
+- Invalid date ranges
+- Missing billing period for services
+- Future start dates
+- Past due dates
 
 ### Testing
 Test scripts are organized by service and functionality:
