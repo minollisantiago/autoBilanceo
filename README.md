@@ -98,4 +98,99 @@ The system includes comprehensive error handling:
 4. Keep service-specific code in dedicated modules
 5. Follow the existing modular architecture
 
+### Input Validation
+
+#### Invoice Parameters Validation
+The system implements strict validation for various invoice parameters using Pydantic v2. Here are the key validations:
+
+1. **Punto de Venta Validation**
+   - Must be exactly 5 digits
+   - Only numeric characters allowed
+   - Automatically pads with leading zeros
+
+2. **Invoice Type Validation**
+   - Validates against allowed types per issuer category
+   - Ensures compatibility between issuer type and invoice type
+
+#### Code Examples
+
+```python
+from pydantic import BaseModel, Field, field_validator
+from enum import IntEnum, auto
+from typing import Optional
+
+# Issuer Types
+class IssuerType(IntEnum):
+    RESPONSABLE_INSCRIPTO = auto()
+    MONOTRIBUTO = auto()
+
+# Punto de Venta Validation
+class PuntoVenta(BaseModel):
+    """
+    Model for validating Punto de Venta number
+    Must be exactly 5 digits, numbers only
+    """
+    number: str = Field(..., min_length=5, max_length=5)
+
+    @field_validator('number')
+    @classmethod
+    def validate_punto_venta(cls, v: str) -> str:
+        if not v.isdigit():
+            raise ValueError('Punto de venta must contain only numbers')
+        if len(v) != 5:
+            raise ValueError('Punto de venta must be exactly 5 digits long')
+        return v
+
+    @classmethod
+    def from_string(cls, value: str) -> 'PuntoVenta':
+        # Pad with leading zeros if necessary
+        padded_value = value.zfill(5)
+        return cls(number=padded_value)
+
+# Usage Examples
+def example_validations():
+    # Valid punto de venta
+    valid_pv = PuntoVenta.from_string("00005")  # Works fine
+    
+    # These will raise validation errors:
+    try:
+        PuntoVenta(number="123")     # Too short
+    except ValueError as e:
+        print(f"Validation error: {e}")
+    
+    try:
+        PuntoVenta(number="12A45")   # Contains a letter
+    except ValueError as e:
+        print(f"Validation error: {e}")
+```
+
+#### Environment Variables
+The following environment variables are validated against these models:
+```env
+PUNTO_VENTA = 00005
+ISSUER_TYPE = RESPONSABLE_INSCRIPTO
+INVOICE_TYPE = FACTURA_A
+```
+
+#### Validation Rules Summary
+1. **Punto de Venta**:
+   - Format: 5 digits (e.g., "00005")
+   - Auto-padding: "5" → "00005"
+   - Invalid: "123" (too short), "12A45" (non-numeric)
+
+2. **Issuer Type**:
+   - Valid values: RESPONSABLE_INSCRIPTO, MONOTRIBUTO
+   - Determines allowed invoice types
+
+3. **Invoice Type**:
+   - Must match issuer type (e.g., FACTURA_A only for RESPONSABLE_INSCRIPTO)
+   - Validated against AFIP's official invoice type codes
+
+#### Error Handling
+The validation system provides clear error messages:
+- Invalid punto de venta format
+- Incompatible invoice type for issuer
+- Invalid character types
+- Length violations
+
 

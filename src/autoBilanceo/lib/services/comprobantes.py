@@ -152,7 +152,6 @@ async def select_invoice_type(page: Page, verbose: bool = False) -> bool:
         # Wait for navigation after clicking continue
         await page.wait_for_load_state('networkidle')
 
-        print("✓ Successfully selected invoice type")
         return True
 
     except Exception as e:

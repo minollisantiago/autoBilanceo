@@ -1,6 +1,6 @@
 from typing import Optional
-from pydantic import BaseModel
 from enum import IntEnum, auto
+from pydantic import BaseModel, Field, field_validator
 
 class IssuerType(IntEnum):
     """
@@ -8,6 +8,28 @@ class IssuerType(IntEnum):
     """
     RESPONSABLE_INSCRIPTO = auto()
     MONOTRIBUTO = auto()
+
+class PuntoVenta(BaseModel):
+    """
+    Model for validating Punto de Venta number
+    Must be exactly 5 digits, numbers only
+    """
+    number: str = Field(..., min_length=5, max_length=5)
+
+    @field_validator('number')
+    @classmethod
+    def validate_punto_venta(cls, v: str) -> str:
+        if not v.isdigit():
+            raise ValueError('Punto de venta must contain only numbers')
+        if len(v) != 5:
+            raise ValueError('Punto de venta must be exactly 5 digits long')
+        return v
+
+    @classmethod
+    def from_string(cls, value: str) -> 'PuntoVenta':
+        # Pad with leading zeros if necessary
+        padded_value = value.zfill(5)
+        return cls(number=padded_value)
 
 class InvoiceType(IntEnum):
     """
@@ -52,6 +74,7 @@ class InvoiceTypeInfo(BaseModel):
     code: InvoiceType
     description: str
     issuer_type: IssuerType
+    punto_venta: PuntoVenta
 
 # Mapping of invoice descriptions
 INVOICE_TYPE_DESCRIPTIONS = {
@@ -122,15 +145,25 @@ def validate_invoice_type_for_issuer(invoice_type: InvoiceType, issuer_type: Iss
     """
     return invoice_type in ALLOWED_INVOICE_TYPES[issuer_type]
 
-# Example usage:
-def create_invoice_type_info(code: InvoiceType, issuer_type: IssuerType) -> Optional[InvoiceTypeInfo]:
+def create_invoice_type_info(
+    code: InvoiceType, 
+    issuer_type: IssuerType,
+    punto_venta: str
+) -> Optional[InvoiceTypeInfo]:
     """
     Creates an InvoiceTypeInfo instance if the invoice type is valid for the given issuer type
+    and punto de venta is valid
     """
     if validate_invoice_type_for_issuer(code, issuer_type):
-        return InvoiceTypeInfo(
-            code=code,
-            description=INVOICE_TYPE_DESCRIPTIONS[code],
-            issuer_type=issuer_type
-        )
+        try:
+            pv = PuntoVenta.from_string(punto_venta)
+            return InvoiceTypeInfo(
+                code=code,
+                description=INVOICE_TYPE_DESCRIPTIONS[code],
+                issuer_type=issuer_type,
+                punto_venta=pv
+            )
+        except ValueError as e:
+            print(f"Invalid punto de venta: {e}")
+            return None
     return None
