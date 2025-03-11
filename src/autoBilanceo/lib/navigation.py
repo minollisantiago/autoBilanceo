@@ -65,14 +65,18 @@ class AFIPNavigator:
 
             print(f"✓ Found service: {service_text}")
 
-            # Click the service panel
+            # Click the service panel, handle new window opening
             await asyncio.sleep(random.uniform(0.5, 1))
-            await self.page.click(service_selector)
+            async with self.page.context.expect_page() as new_page_info:
+                await self.page.click(service_selector)
 
-            # Wait for navigation and verify using provided function
-            await self.page.wait_for_load_state('networkidle')
+            # Get the new page and wait for load
+            service_page = await new_page_info.value
+            await service_page.wait_for_load_state('networkidle')
+
+            # Let the verify_page() function handle service-specific verification
             if verbose: print(f"Verifying the {service_text} page content...")
-            return await verify_page(self.page)
+            return await verify_page(service_page)
 
         except Exception as e:
             print(f"⨯ Failed to find or access service: {str(e)}")
