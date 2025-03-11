@@ -4,7 +4,12 @@ import asyncio
 from typing import Dict, Any
 from dotenv import load_dotenv
 from playwright.async_api import Page
-from ...models.invoice_types import InvoiceType, IssuerType, validate_invoice_type_for_issuer
+from ...models.invoice_types import (
+    InvoiceType, 
+    IssuerType, 
+    PuntoVenta,
+    validate_invoice_type_for_issuer
+)
 
 async def verify_rcel_page(page: Page) -> bool:
     """Verify RCEL (Comprobantes en línea) page and handle empresa selection"""
@@ -87,7 +92,7 @@ async def select_invoice_type(page: Page, verbose: bool = False) -> bool:
     Validates the selections against environment variables and invoice type rules.
 
     Environment variables used:
-    - PUNTO_VENTA: The punto de venta number (e.g., "00005")
+    - PUNTO_VENTA: The punto de venta number (must be exactly 5 digits)
     - ISSUER_TYPE: The type of issuer (must be a valid IssuerType enum value)
     - INVOICE_TYPE: The type of invoice to generate (must be a valid InvoiceType enum value)
 
@@ -100,13 +105,20 @@ async def select_invoice_type(page: Page, verbose: bool = False) -> bool:
         # Get and validate args
         if verbose: print(f"Validating punto de venta, invoice issuer and invoice type...")
 
-        punto_venta = os.getenv('PUNTO_VENTA')
-        if not punto_venta:
+        # Get punto_venta and validate using PuntoVenta model
+        punto_venta_raw = os.getenv('PUNTO_VENTA')
+        if not punto_venta_raw:
             raise ValueError("PUNTO_VENTA not found in environment variables")
 
-        # Clean punto_venta value (remove leading zeros and spaces)
-        punto_venta_clean = punto_venta.lstrip('0').strip()
+        try:
+            punto_venta = PuntoVenta.from_string(punto_venta_raw)
+            # For select option we need the raw number without leading zeros
+            punto_venta_clean = str(int(punto_venta.number))
+            if verbose: print(f"✓ Valid punto de venta: {punto_venta.number}")
+        except ValueError as e:
+            raise ValueError(f"Invalid PUNTO_VENTA: {str(e)}")
 
+        # Validate issuer and invoice types
         try:
             issuer_type = IssuerType[os.getenv('ISSUER_TYPE', '')]
             invoice_type = InvoiceType[os.getenv('INVOICE_TYPE', '')]
@@ -117,10 +129,10 @@ async def select_invoice_type(page: Page, verbose: bool = False) -> bool:
         if not validate_invoice_type_for_issuer(invoice_type, issuer_type):
             raise ValueError(f"Invoice type {invoice_type.name} is not valid for issuer type {issuer_type.name}")
 
-        if verbose: print("✓ Valid punto de venta, invoice issuer and invoice type")
+        if verbose: print("✓ Valid invoice issuer and invoice type")
 
         # Fill the punto de venta and invoice type forms
-        if verbose: print(f"Selecting punto de venta: {punto_venta}")
+        if verbose: print(f"Selecting punto de venta: {punto_venta.number}")
 
         # Wait for and select punto de venta
         punto_venta_selector = 'select#puntodeventa'
@@ -152,6 +164,7 @@ async def select_invoice_type(page: Page, verbose: bool = False) -> bool:
         # Wait for navigation after clicking continue
         await page.wait_for_load_state('networkidle')
 
+        if verbose: print("✓ Successfully selected invoice type and continued")
         return True
 
     except Exception as e:
