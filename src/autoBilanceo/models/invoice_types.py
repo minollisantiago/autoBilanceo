@@ -146,7 +146,7 @@ def validate_invoice_type_for_issuer(invoice_type: InvoiceType, issuer_type: Iss
     return invoice_type in ALLOWED_INVOICE_TYPES[issuer_type]
 
 def create_invoice_type_info(
-    code: InvoiceType, 
+    code: InvoiceType,
     issuer_type: IssuerType,
     punto_venta: str
 ) -> Optional[InvoiceTypeInfo]:

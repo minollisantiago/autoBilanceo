@@ -87,9 +87,22 @@ The system implements strict validation for various invoice parameters using Pyd
    - Validates against allowed types per issuer category
    - Ensures compatibility between issuer type and invoice type
 
+3. **Currency Validation**
+   - Validates against AFIP's official currency codes
+   - Organized by geographical regions:
+     - Asian Currencies (e.g., Baht, Yuan, Yen)
+     - European Currencies (e.g., Euro, Pound Sterling)
+     - North American Currencies (e.g., USD, CAD)
+     - Central American and Caribbean Currencies
+     - South American Currencies
+     - Oceania Currencies
+     - African and Middle Eastern Currencies
+     - Special Units (e.g., Special Drawing Rights)
+
 #### Code Examples
 
 ```python
+# 1. Punto de Venta Validation Example
 from pydantic import BaseModel, Field, field_validator
 from enum import IntEnum, auto
 from typing import Optional
@@ -122,6 +135,23 @@ class PuntoVenta(BaseModel):
         padded_value = value.zfill(5)
         return cls(number=padded_value)
 
+# 2. Currency Validation Example
+from enum import StrEnum
+
+class CurrencyCode(StrEnum):
+    """Example of currency validation"""
+    # European Currencies
+    EURO = "060"
+    LIBRA_ESTERLINA = "021"
+    
+    # North American Currencies
+    DOLAR_ESTADOUNIDENSE = "DOL"
+    DOLAR_CANADIENSE = "018"
+    
+    # South American Currencies
+    PESO_CHILENO = "033"
+    REAL_BRASILENO = "012"
+
 # Usage Examples
 def example_validations():
     # Valid punto de venta
@@ -137,6 +167,13 @@ def example_validations():
         PuntoVenta(number="12A45")   # Contains a letter
     except ValueError as e:
         print(f"Validation error: {e}")
+
+    # Currency validation
+    try:
+        currency = CurrencyCode.DOLAR_ESTADOUNIDENSE  # Valid currency
+        print(f"Valid currency code: {currency}")
+    except ValueError as e:
+        print(f"Invalid currency: {e}")
 ```
 
 #### Environment Variables
@@ -145,6 +182,7 @@ The following environment variables are validated against these models:
 PUNTO_VENTA = 00005
 ISSUER_TYPE = RESPONSABLE_INSCRIPTO
 INVOICE_TYPE = FACTURA_A
+CURRENCY = DOL  # USD Dollar code
 ```
 
 #### Validation Rules Summary
@@ -160,6 +198,16 @@ INVOICE_TYPE = FACTURA_A
 3. **Invoice Type**:
    - Must match issuer type (e.g., FACTURA_A only for RESPONSABLE_INSCRIPTO)
    - Validated against AFIP's official invoice type codes
+
+4. **Currency**:
+   - Must be a valid AFIP currency code
+   - Codes vary in format (e.g., "DOL", "060", "021")
+   - Grouped by geographical regions
+   - Common codes:
+     - "DOL": US Dollar
+     - "060": Euro
+     - "021": British Pound
+     - "012": Brazilian Real
 
 #### Error Handling
 The validation system provides clear error messages:
