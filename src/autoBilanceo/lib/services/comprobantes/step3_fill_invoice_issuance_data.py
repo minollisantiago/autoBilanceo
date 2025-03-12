@@ -96,7 +96,6 @@ async def fill_invoice_issuance_data(page: Page, verbose: bool = False) -> bool:
         # Wait for navigation
         await page.wait_for_load_state('networkidle')
 
-        if verbose: print("✓ Successfully completed issuance data form")
         return True
 
     except Exception as e:

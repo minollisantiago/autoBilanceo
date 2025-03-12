@@ -294,8 +294,7 @@ def example_payment_validations():
 
 # 5. IVA Condition Validation Example
 from enum import IntEnum
-from typing import Dict
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, model_validator
 from .invoice_types import IssuerType
 
 class IVACondition(IntEnum):
@@ -324,12 +323,10 @@ class IVAConditionInfo(BaseModel):
         description="Type of issuer creating the invoice"
     )
 
-    @field_validator('condition')
-    @classmethod
-    def validate_condition_for_issuer(cls, condition: IVACondition, values: Dict) -> IVACondition:
-        issuer_type = values.data.get('issuer_type')
-        if issuer_type is None:
-            raise ValueError('Issuer type must be provided')
+    @model_validator(mode='after')
+    def validate_condition_for_issuer(self) -> 'IVAConditionInfo':
+        condition = self.condition
+        issuer_type = self.issuer_type
 
         if issuer_type == IssuerType.RESPONSABLE_INSCRIPTO:
             valid_conditions = {
@@ -357,7 +354,7 @@ class IVAConditionInfo(BaseModel):
             raise ValueError(
                 f'Invalid IVA condition {condition} for issuer type {issuer_type.name}'
             )
-        return condition
+        return self
 
 # Usage Examples
 def example_iva_validations():
