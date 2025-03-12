@@ -111,6 +111,12 @@ The system implements strict validation for various invoice parameters using Pyd
    - Ensures at least one payment method is selected
    - Maps to AFIP's official payment method codes
 
+6. **IVA Condition Validation**
+   - Validates recipient's IVA condition
+   - Maps to AFIP's official condition codes
+   - Ensures valid condition selection
+   - Maintains Spanish descriptions for UI consistency
+
 #### Code Examples
 
 ```python
@@ -279,6 +285,44 @@ def example_payment_validations():
     except ValueError as e:
         print(f"Validation error: {e}")
 
+# 5. IVA Condition Validation Example
+from enum import IntEnum
+from pydantic import BaseModel, Field
+
+class IVACondition(IntEnum):
+    """IVA conditions in AFIP's system"""
+    IVA_RESPONSABLE_INSCRIPTO = 1
+    RESPONSABLE_MONOTRIBUTO = 6
+    MONOTRIBUTISTA_SOCIAL = 13
+    MONOTRIBUTISTA_TRABAJADOR_INDEPENDIENTE_PROMOVIDO = 16
+
+class IVAConditionInfo(BaseModel):
+    """IVA condition validation"""
+    condition: IVACondition = Field(
+        description="IVA condition of the invoice recipient"
+    )
+
+# Mapping of descriptions
+IVA_CONDITION_DESCRIPTIONS = {
+    IVACondition.IVA_RESPONSABLE_INSCRIPTO: "IVA Responsable Inscripto",
+    IVACondition.RESPONSABLE_MONOTRIBUTO: "Responsable Monotributo",
+    IVACondition.MONOTRIBUTISTA_SOCIAL: "Monotributista Social",
+    IVACondition.MONOTRIBUTISTA_TRABAJADOR_INDEPENDIENTE_PROMOVIDO: 
+        "Monotributista Trabajador Independiente Promovido"
+}
+
+# Usage Examples
+def example_iva_validations():
+    try:
+        # Valid IVA condition
+        iva_info = create_iva_condition_info(
+            IVACondition.IVA_RESPONSABLE_INSCRIPTO
+        )
+        print(f"IVA Condition: {IVA_CONDITION_DESCRIPTIONS[iva_info.condition]}")
+        
+    except ValueError as e:
+        print(f"Validation error: {e}")
+
 #### Environment Variables
 The following environment variables are validated against these models:
 ```env
@@ -288,6 +332,7 @@ INVOICE_TYPE = FACTURA_A
 CURRENCY = DOL  # USD Dollar code
 CONCEPT_TYPE = SERVICIOS
 PAYMENT_METHODS = ["CONTADO", "TARJETA_CREDITO"]  # Multiple methods allowed
+IVA_CONDITION = "IVA_RESPONSABLE_INSCRIPTO"  # Recipient's IVA condition
 ```
 
 #### Validation Rules Summary
@@ -343,6 +388,16 @@ PAYMENT_METHODS = ["CONTADO", "TARJETA_CREDITO"]  # Multiple methods allowed
      - "99": Otra
      - "90": Otros medios electrónicos
 
+7. **IVA Condition**:
+   - Must be a valid AFIP condition code
+   - Valid codes:
+     - "1": IVA Responsable Inscripto
+     - "6": Responsable Monotributo
+     - "13": Monotributista Social
+     - "16": Monotributista Trabajador Independiente Promovido
+   - No default value - must be explicitly set
+   - Spanish descriptions maintained for UI consistency
+
 #### Error Handling
 The validation system provides clear error messages for:
 - Invalid punto de venta format
@@ -357,6 +412,8 @@ The validation system provides clear error messages for:
 - Missing payment method selection
 - Invalid payment method combinations
 - Missing required card data
+- Invalid IVA condition codes
+- Missing IVA condition selection
 
 ### Testing
 Test scripts are organized by service and functionality:
