@@ -1,7 +1,6 @@
 import os
 import random
 import asyncio
-from typing import Dict, Any
 from dotenv import load_dotenv
 from playwright.async_api import Page
 from ...models.invoice_issuance_data import ConceptType, create_issuance_data
