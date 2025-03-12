@@ -117,6 +117,13 @@ The system implements strict validation for various invoice parameters using Pyd
    - Ensures valid condition selection
    - Maintains Spanish descriptions for UI consistency
 
+7. **CUIT Validation**
+   - Validates CUIT (Código Único de Identificación Tributaria)
+   - Ensures exactly 11 digits
+   - Validates numeric-only input
+   - Automatic cleaning of non-numeric characters
+   - Prepared for future taxpayer type and verification digit validations
+
 #### Code Examples
 
 ```python
@@ -323,6 +330,42 @@ def example_iva_validations():
     except ValueError as e:
         print(f"Validation error: {e}")
 
+# 6. CUIT Validation Example
+from pydantic import BaseModel, Field, field_validator
+
+class CUITNumber(BaseModel):
+    """CUIT validation model"""
+    number: str = Field(..., min_length=11, max_length=11)
+
+    @field_validator('number')
+    @classmethod
+    def validate_cuit_format(cls, v: str) -> str:
+        if not v.isdigit():
+            raise ValueError('CUIT must contain only numbers')
+        if len(v) != 11:
+            raise ValueError('CUIT must be exactly 11 digits long')
+        return v
+
+    @classmethod
+    def from_string(cls, value: str) -> 'CUITNumber':
+        # Remove any non-numeric characters
+        cleaned_value = ''.join(filter(str.isdigit, value))
+        return cls(number=cleaned_value)
+
+# Usage Examples
+def example_cuit_validations():
+    try:
+        # Valid CUIT
+        cuit_info = create_cuit_number("20123456789")
+        print(f"Valid CUIT: {cuit_info.number}")
+        
+        # These will raise validation errors:
+        invalid_cuit1 = create_cuit_number("123")  # Too short
+        invalid_cuit2 = create_cuit_number("2012345678A")  # Contains a letter
+        
+    except ValueError as e:
+        print(f"Validation error: {e}")
+
 #### Environment Variables
 The following environment variables are validated against these models:
 ```env
@@ -333,6 +376,7 @@ CURRENCY = DOL  # USD Dollar code
 CONCEPT_TYPE = SERVICIOS
 PAYMENT_METHODS = ["CONTADO", "TARJETA_CREDITO"]  # Multiple methods allowed
 IVA_CONDITION = "IVA_RESPONSABLE_INSCRIPTO"  # Recipient's IVA condition
+CUIT = "20123456789"  # 11 digits required
 ```
 
 #### Validation Rules Summary
@@ -398,6 +442,19 @@ IVA_CONDITION = "IVA_RESPONSABLE_INSCRIPTO"  # Recipient's IVA condition
    - No default value - must be explicitly set
    - Spanish descriptions maintained for UI consistency
 
+8. **CUIT Number**:
+   - Format: Exactly 11 digits
+   - Only numeric characters allowed
+   - Auto-cleaning: Non-numeric characters are removed
+   - Structure (future validation):
+     - First 2 digits: Taxpayer type
+     - Next 8 digits: Unique identifier
+     - Last digit: Verification code
+   - Examples:
+     - Valid: "20123456789"
+     - Invalid: "123" (too short)
+     - Invalid: "2012345678A" (contains letter)
+
 #### Error Handling
 The validation system provides clear error messages for:
 - Invalid punto de venta format
@@ -414,6 +471,9 @@ The validation system provides clear error messages for:
 - Missing required card data
 - Invalid IVA condition codes
 - Missing IVA condition selection
+- Invalid CUIT format
+- CUIT length violations
+- Non-numeric CUIT characters
 
 ### Testing
 Test scripts are organized by service and functionality:
