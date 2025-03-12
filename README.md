@@ -294,39 +294,93 @@ def example_payment_validations():
 
 # 5. IVA Condition Validation Example
 from enum import IntEnum
-from pydantic import BaseModel, Field
+from typing import Dict
+from pydantic import BaseModel, Field, field_validator
+from .invoice_types import IssuerType
 
 class IVACondition(IntEnum):
     """IVA conditions in AFIP's system"""
+    # Common conditions for both issuer types
     IVA_RESPONSABLE_INSCRIPTO = 1
     RESPONSABLE_MONOTRIBUTO = 6
     MONOTRIBUTISTA_SOCIAL = 13
     MONOTRIBUTISTA_TRABAJADOR_INDEPENDIENTE_PROMOVIDO = 16
+
+    # Additional conditions for MONOTRIBUTO issuer
+    IVA_SUJETO_EXENTO = 4
+    CONSUMIDOR_FINAL = 5
+    SUJETO_NO_CATEGORIZADO = 7
+    PROVEEDOR_DEL_EXTERIOR = 8
+    CLIENTE_DEL_EXTERIOR = 9
+    IVA_LIBERADO_LEY_19640 = 10
+    IVA_NO_ALCANZADO = 15
 
 class IVAConditionInfo(BaseModel):
     """IVA condition validation"""
     condition: IVACondition = Field(
         description="IVA condition of the invoice recipient"
     )
+    issuer_type: IssuerType = Field(
+        description="Type of issuer creating the invoice"
+    )
 
-# Mapping of descriptions
-IVA_CONDITION_DESCRIPTIONS = {
-    IVACondition.IVA_RESPONSABLE_INSCRIPTO: "IVA Responsable Inscripto",
-    IVACondition.RESPONSABLE_MONOTRIBUTO: "Responsable Monotributo",
-    IVACondition.MONOTRIBUTISTA_SOCIAL: "Monotributista Social",
-    IVACondition.MONOTRIBUTISTA_TRABAJADOR_INDEPENDIENTE_PROMOVIDO: 
-        "Monotributista Trabajador Independiente Promovido"
-}
+    @field_validator('condition')
+    @classmethod
+    def validate_condition_for_issuer(cls, condition: IVACondition, values: Dict) -> IVACondition:
+        issuer_type = values.data.get('issuer_type')
+        if issuer_type is None:
+            raise ValueError('Issuer type must be provided')
+
+        if issuer_type == IssuerType.RESPONSABLE_INSCRIPTO:
+            valid_conditions = {
+                IVACondition.IVA_RESPONSABLE_INSCRIPTO,
+                IVACondition.RESPONSABLE_MONOTRIBUTO,
+                IVACondition.MONOTRIBUTISTA_SOCIAL,
+                IVACondition.MONOTRIBUTISTA_TRABAJADOR_INDEPENDIENTE_PROMOVIDO
+            }
+        else:  # MONOTRIBUTO
+            valid_conditions = {
+                IVACondition.IVA_RESPONSABLE_INSCRIPTO,
+                IVACondition.IVA_SUJETO_EXENTO,
+                IVACondition.CONSUMIDOR_FINAL,
+                IVACondition.RESPONSABLE_MONOTRIBUTO,
+                IVACondition.SUJETO_NO_CATEGORIZADO,
+                IVACondition.PROVEEDOR_DEL_EXTERIOR,
+                IVACondition.CLIENTE_DEL_EXTERIOR,
+                IVACondition.IVA_LIBERADO_LEY_19640,
+                IVACondition.MONOTRIBUTISTA_SOCIAL,
+                IVACondition.IVA_NO_ALCANZADO,
+                IVACondition.MONOTRIBUTISTA_TRABAJADOR_INDEPENDIENTE_PROMOVIDO
+            }
+
+        if condition not in valid_conditions:
+            raise ValueError(
+                f'Invalid IVA condition {condition} for issuer type {issuer_type.name}'
+            )
+        return condition
 
 # Usage Examples
 def example_iva_validations():
     try:
-        # Valid IVA condition
-        iva_info = create_iva_condition_info(
-            IVACondition.IVA_RESPONSABLE_INSCRIPTO
+        # Valid for Responsable Inscripto
+        ri_condition = create_iva_condition_info(
+            condition=IVACondition.IVA_RESPONSABLE_INSCRIPTO,
+            issuer_type=IssuerType.RESPONSABLE_INSCRIPTO
         )
-        print(f"IVA Condition: {IVA_CONDITION_DESCRIPTIONS[iva_info.condition]}")
-        
+        print(f"Valid RI condition: {IVA_CONDITION_DESCRIPTIONS[ri_condition.condition]}")
+
+        # Valid for Monotributo
+        mono_condition = create_iva_condition_info(
+            condition=IVACondition.CONSUMIDOR_FINAL,
+            issuer_type=IssuerType.MONOTRIBUTO
+        )
+        print(f"Valid Monotributo condition: {IVA_CONDITION_DESCRIPTIONS[mono_condition.condition]}")
+
+        # This will raise an error - invalid combination
+        invalid_condition = create_iva_condition_info(
+            condition=IVACondition.CONSUMIDOR_FINAL,
+            issuer_type=IssuerType.RESPONSABLE_INSCRIPTO
+        )
     except ValueError as e:
         print(f"Validation error: {e}")
 
@@ -434,13 +488,25 @@ CUIT = "20123456789"  # 11 digits required
 
 7. **IVA Condition**:
    - Must be a valid AFIP condition code
-   - Valid codes:
-     - "1": IVA Responsable Inscripto
-     - "6": Responsable Monotributo
-     - "13": Monotributista Social
-     - "16": Monotributista Trabajador Independiente Promovido
+   - Must be compatible with issuer type
+   - Responsable Inscripto issuers have limited condition options
+   - Monotributo issuers have access to all conditions
    - No default value - must be explicitly set
    - Spanish descriptions maintained for UI consistency
+   - Valid codes vary by issuer type:
+     - Common codes (both issuer types):
+       - "1": IVA Responsable Inscripto
+       - "6": Responsable Monotributo
+       - "13": Monotributista Social
+       - "16": Monotributista Trabajador Independiente Promovido
+     - Additional codes (Monotributo only):
+       - "4": IVA Sujeto Exento
+       - "5": Consumidor Final
+       - "7": Sujeto No Categorizado
+       - "8": Proveedor del Exterior
+       - "9": Cliente del Exterior
+       - "10": IVA Liberado - Ley Nº 19.640
+       - "15": IVA No Alcanzado
 
 8. **CUIT Number**:
    - Format: Exactly 11 digits
