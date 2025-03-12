@@ -74,361 +74,346 @@ Located in `models/`:
   - Validation functions for invoice type compatibility
 
 ### Input Validation
-
 #### Invoice Parameters Validation
+
 The system implements strict validation for various invoice parameters using Pydantic v2. Here are the key validations:
 
-1. **Punto de Venta Validation**
-   - Must be exactly 5 digits
-   - Only numeric characters allowed
-   - Automatically pads with leading zeros
+1.  **Punto de Venta Validation**
 
-2. **Invoice Type Validation**
-   - Validates against allowed types per issuer category
-   - Ensures compatibility between issuer type and invoice type
+    *   Must be exactly 5 digits
+    *   Only numeric characters allowed
+    *   Automatically pads with leading zeros
 
-3. **Currency Validation**
-   - Validates against AFIP's official currency codes
-   - Organized by geographical regions
-   - Supports all AFIP-recognized currencies
+    ```python
+    # 1. Punto de Venta Validation Example
+    from pydantic import BaseModel, Field, field_validator
+    from enum import IntEnum, auto
+    from typing import Optional
 
-4. **Issuance Data Validation**
-   - Date format validation (dd/mm/yyyy)
-   - Concept type validation (Products, Services, Both)
-   - Billing period validation for services
-   - Business rules enforcement:
-     - Dates must be after year 2000
-     - End date must be after start date
-     - Payment due date must be after end date
-     - Payment due date cannot be before today
-     - Start date cannot be after today
-     - Billing period required for services
+    # Issuer Types
+    class IssuerType(IntEnum):
+        RESPONSABLE_INSCRIPTO = auto()
+        MONOTRIBUTO = auto()
 
-5. **Payment Methods Validation**
-   - Validates payment method selections for invoices
-   - Supports multiple payment method selection
-   - Validates card payment requirements
-   - Ensures at least one payment method is selected
-   - Maps to AFIP's official payment method codes
+    # Punto de Venta Validation
+    class PuntoVenta(BaseModel):
+        """
+        Model for validating Punto de Venta number
+        Must be exactly 5 digits, numbers only
+        """
+        number: str = Field(..., min_length=5, max_length=5)
 
-6. **IVA Condition Validation**
-   - Validates recipient's IVA condition
-   - Maps to AFIP's official condition codes
-   - Ensures valid condition selection
-   - Maintains Spanish descriptions for UI consistency
+        @field_validator('number')
+        @classmethod
+        def validate_punto_venta(cls, v: str) -> str:
+            if not v.isdigit():
+                raise ValueError('Punto de venta must contain only numbers')
+            if len(v) != 5:
+                raise ValueError('Punto de venta must be exactly 5 digits long')
+            return v
 
-7. **CUIT Validation**
-   - Validates CUIT (Código Único de Identificación Tributaria)
-   - Ensures exactly 11 digits
-   - Validates numeric-only input
-   - Automatic cleaning of non-numeric characters
-   - Prepared for future taxpayer type and verification digit validations
+        @classmethod
+        def from_string(cls, value: str) -> 'PuntoVenta':
+            # Pad with leading zeros if necessary
+            padded_value = value.zfill(5)
+            return cls(number=padded_value)
 
-#### Code Examples
-
-```python
-# 1. Punto de Venta Validation Example
-from pydantic import BaseModel, Field, field_validator
-from enum import IntEnum, auto
-from typing import Optional
-
-# Issuer Types
-class IssuerType(IntEnum):
-    RESPONSABLE_INSCRIPTO = auto()
-    MONOTRIBUTO = auto()
-
-# Punto de Venta Validation
-class PuntoVenta(BaseModel):
-    """
-    Model for validating Punto de Venta number
-    Must be exactly 5 digits, numbers only
-    """
-    number: str = Field(..., min_length=5, max_length=5)
-
-    @field_validator('number')
-    @classmethod
-    def validate_punto_venta(cls, v: str) -> str:
-        if not v.isdigit():
-            raise ValueError('Punto de venta must contain only numbers')
-        if len(v) != 5:
-            raise ValueError('Punto de venta must be exactly 5 digits long')
-        return v
-
-    @classmethod
-    def from_string(cls, value: str) -> 'PuntoVenta':
-        # Pad with leading zeros if necessary
-        padded_value = value.zfill(5)
-        return cls(number=padded_value)
-
-# 2. Currency Validation Example
-from enum import StrEnum
-
-class CurrencyCode(StrEnum):
-    """Example of currency validation"""
-    # European Currencies
-    EURO = "060"
-    LIBRA_ESTERLINA = "021"
-    
-    # North American Currencies
-    DOLAR_ESTADOUNIDENSE = "DOL"
-    DOLAR_CANADIENSE = "018"
-    
-    # South American Currencies
-    PESO_CHILENO = "033"
-    REAL_BRASILENO = "012"
-
-# Usage Examples
-def example_validations():
-    # Valid punto de venta
-    valid_pv = PuntoVenta.from_string("00005")  # Works fine
-    
-    # These will raise validation errors:
-    try:
-        PuntoVenta(number="123")     # Too short
-    except ValueError as e:
-        print(f"Validation error: {e}")
-    
-    try:
-        PuntoVenta(number="12A45")   # Contains a letter
-    except ValueError as e:
-        print(f"Validation error: {e}")
-
-    # Currency validation
-    try:
-        currency = CurrencyCode.DOLAR_ESTADOUNIDENSE  # Valid currency
-        print(f"Valid currency code: {currency}")
-    except ValueError as e:
-        print(f"Invalid currency: {e}")
-
-# 3. Issuance Data Validation Example
-class ConceptType(IntEnum):
-    """Concept types for invoices"""
-    PRODUCTOS = 1
-    SERVICIOS = 2
-    PRODUCTOS_Y_SERVICIOS = 3
-
-class IssuanceDate(BaseModel):
-    """Date validation for AFIP format"""
-    date: datetime
-
-    @field_validator('date')
-    @classmethod
-    def validate_date_format(cls, v: datetime) -> datetime:
-        if v < datetime(2000, 1, 1):
-            raise ValueError('Date must be after year 2000')
-        return v
-
-    def format_for_afip(self) -> str:
-        return self.date.strftime("%d/%m/%Y")
-
-# Usage Examples
-def example_issuance_validations():
-    try:
-        # Valid dates
-        issuance_date = IssuanceDate.from_string("11/03/2024")
+    # Usage Examples
+    def example_validations():
+        # Valid punto de venta
+        valid_pv = PuntoVenta.from_string("00005")  # Works fine
         
-        # Valid concept type
-        concept = ConceptType.SERVICIOS
+        # These will raise validation errors:
+        try:
+            PuntoVenta(number="123")     # Too short
+        except ValueError as e:
+            print(f"Validation error: {e}")
         
-        # Create billing period
-        billing_period = BillingPeriod(
+        try:
+            PuntoVenta(number="12A45")   # Contains a letter
+        except ValueError as e:
+            print(f"Validation error: {e}")
+    ```
+
+2.  **Invoice Type Validation**
+
+    *   Validates against allowed types per issuer category
+    *   Ensures compatibility between issuer type and invoice type
+
+3.  **Currency Validation**
+
+    *   Validates against AFIP's official currency codes
+    *   Organized by geographical regions
+    *   Supports all AFIP-recognized currencies
+
+    ```python
+    # 2. Currency Validation Example
+    from enum import StrEnum
+
+    class CurrencyCode(StrEnum):
+        """Example of currency validation"""
+        # European Currencies
+        EURO = "060"
+        LIBRA_ESTERLINA = "021"
+        
+        # North American Currencies
+        DOLAR_ESTADOUNIDENSE = "DOL"
+        DOLAR_CANADIENSE = "018"
+        
+        # South American Currencies
+        PESO_CHILENO = "033"
+        REAL_BRASILENO = "012"
+    
+    # Usage Examples
+    def example_validations():
+        # Currency validation
+        try:
+            currency = CurrencyCode.DOLAR_ESTADOUNIDENSE  # Valid currency
+            print(f"Valid currency code: {currency}")
+        except ValueError as e:
+            print(f"Invalid currency: {e}")
+    ```
+
+4.  **Issuance Data Validation**
+
+    *   Date format validation (dd/mm/yyyy)
+    *   Concept type validation (Products, Services, Both)
+    *   Billing period validation for services
+    *   Business rules enforcement:
+        *   Dates must be after year 2000
+        *   End date must be after start date
+        *   Payment due date must be after end date
+        *   Payment due date cannot be before today
+        *   Start date cannot be after today
+        *   Billing period required for services
+
+    ```python
+    # 3. Issuance Data Validation Example
+    from datetime import datetime
+
+    class IssuanceDate(BaseModel):
+        date: datetime
+
+        @classmethod
+        def from_string(cls, value: str) -> 'IssuanceDate':
+            try:
+                parsed_date = datetime.strptime(value, "%d/%m/%Y")
+                return cls(date=parsed_date)
+            except ValueError:
+                raise ValueError('Date must be in dd/mm/yyyy format')
+
+    class BillingPeriod(BaseModel):
+        start_date: IssuanceDate
+        end_date: IssuanceDate
+        payment_due_date: IssuanceDate
+
+        def validate_date_ranges(self) -> bool:
+            if self.end_date.date < self.start_date.date:
+                raise ValueError('End date cannot be before start date')
+            if self.payment_due_date.date < self.end_date.date:
+                raise ValueError('Payment due date cannot be before end date')
+            return True
+
+    # Success case
+    try:
+        # Valid billing period with correct date sequence
+        valid_period = BillingPeriod(
             start_date=IssuanceDate.from_string("01/03/2024"),
             end_date=IssuanceDate.from_string("31/03/2024"),
             payment_due_date=IssuanceDate.from_string("15/04/2024")
         )
-        
-        # These will raise validation errors:
-        invalid_date = IssuanceDate.from_string("32/13/2024")  # Invalid date
-        past_due = IssuanceDate.from_string("01/01/1999")      # Before 2000
-        
+        valid_period.validate_date_ranges()
+        print("Success! Valid billing period")
     except ValueError as e:
-        print(f"Validation error: {e}")
+        print(f"Error: {e}")
 
-# 4. Payment Methods Validation Example
-from enum import IntEnum
-from typing import Set
-from pydantic import BaseModel, Field
-
-class PaymentMethod(IntEnum):
-    """Payment methods available in AFIP's system"""
-    CONTADO = 1
-    TARJETA_DEBITO = 69
-    TARJETA_CREDITO = 68
-    CUENTA_CORRIENTE = 96
-    CHEQUE = 97
-    TRANSFERENCIA_BANCARIA = 91
-    OTRA = 99
-    OTROS_MEDIOS_ELECTRONICOS = 90
-
-class PaymentMethodInfo(BaseModel):
-    """Payment methods selection validation"""
-    selected_methods: Set[PaymentMethod] = Field(
-        default_factory=set,
-        description="Set of selected payment methods"
-    )
-
-    @property
-    def requires_card_data(self) -> bool:
-        """Check if card data is required"""
-        card_methods = {PaymentMethod.TARJETA_DEBITO, PaymentMethod.TARJETA_CREDITO}
-        return any(method in card_methods for method in self.selected_methods)
-
-# Usage Examples
-def example_payment_validations():
+    # Error cases
     try:
-        # Valid payment combination
-        payment_info = create_payment_method_info(
-            PaymentMethod.CONTADO,
-            PaymentMethod.TARJETA_CREDITO
+        # Invalid billing period: end date before start date
+        invalid_period = BillingPeriod(
+            start_date=IssuanceDate.from_string("31/03/2024"),
+            end_date=IssuanceDate.from_string("01/03/2024"),
+            payment_due_date=IssuanceDate.from_string("15/04/2024")
         )
-        
-        # Check if card data needed
-        if payment_info.requires_card_data:
-            print("Card data required")
-        
-        # This will raise an error:
-        invalid_payment = create_payment_method_info()  # No methods selected
-        
+        invalid_period.validate_date_ranges()
+        print("This line won't be reached")
     except ValueError as e:
-        print(f"Validation error: {e}")
+        print(f"Error: {e}")  # Output: Error: End date cannot be before start date
+    ```
 
-# 5. IVA Condition Validation Example
-from enum import IntEnum
-from pydantic import BaseModel, Field, model_validator
-from .invoice_types import IssuerType
+5.  **Payment Methods Validation**
 
-class IVACondition(IntEnum):
-    """IVA conditions in AFIP's system"""
-    # Common conditions for both issuer types
-    IVA_RESPONSABLE_INSCRIPTO = 1
-    RESPONSABLE_MONOTRIBUTO = 6
-    MONOTRIBUTISTA_SOCIAL = 13
-    MONOTRIBUTISTA_TRABAJADOR_INDEPENDIENTE_PROMOVIDO = 16
+    *   Validates payment method selections for invoices
+    *   Supports multiple payment method selection
+    *   Validates card payment requirements
+    *   Ensures at least one payment method is selected
+    *   Maps to AFIP's official payment method codes
 
-    # Additional conditions for MONOTRIBUTO issuer
-    IVA_SUJETO_EXENTO = 4
-    CONSUMIDOR_FINAL = 5
-    SUJETO_NO_CATEGORIZADO = 7
-    PROVEEDOR_DEL_EXTERIOR = 8
-    CLIENTE_DEL_EXTERIOR = 9
-    IVA_LIBERADO_LEY_19640 = 10
-    IVA_NO_ALCANZADO = 15
+    ```python
+    # 4. Payment Methods Validation Example
+    from enum import IntEnum
+    from typing import Set
+    from pydantic import BaseModel, Field
 
-class IVAConditionInfo(BaseModel):
-    """IVA condition validation"""
-    condition: IVACondition = Field(
-        description="IVA condition of the invoice recipient"
-    )
-    issuer_type: IssuerType = Field(
-        description="Type of issuer creating the invoice"
-    )
+    class PaymentMethod(IntEnum):
+        """Payment methods available in AFIP's system"""
+        CONTADO = 1
+        TARJETA_DEBITO = 69
+        TARJETA_CREDITO = 68
+        CUENTA_CORRIENTE = 96
+        CHEQUE = 97
+        TRANSFERENCIA_BANCARIA = 91
+        OTRA = 99
+        OTROS_MEDIOS_ELECTRONICOS = 90
 
-    @model_validator(mode='after')
-    def validate_condition_for_issuer(self) -> 'IVAConditionInfo':
-        condition = self.condition
-        issuer_type = self.issuer_type
+    class PaymentMethodInfo(BaseModel):
+        """Payment methods selection validation"""
+        selected_methods: Set[PaymentMethod] = Field(
+            default_factory=set,
+            description="Set of selected payment methods"
+        )
 
-        if issuer_type == IssuerType.RESPONSABLE_INSCRIPTO:
-            valid_conditions = {
-                IVACondition.IVA_RESPONSABLE_INSCRIPTO,
-                IVACondition.RESPONSABLE_MONOTRIBUTO,
-                IVACondition.MONOTRIBUTISTA_SOCIAL,
-                IVACondition.MONOTRIBUTISTA_TRABAJADOR_INDEPENDIENTE_PROMOVIDO
-            }
-        else:  # MONOTRIBUTO
-            valid_conditions = {
-                IVACondition.IVA_RESPONSABLE_INSCRIPTO,
-                IVACondition.IVA_SUJETO_EXENTO,
-                IVACondition.CONSUMIDOR_FINAL,
-                IVACondition.RESPONSABLE_MONOTRIBUTO,
-                IVACondition.SUJETO_NO_CATEGORIZADO,
-                IVACondition.PROVEEDOR_DEL_EXTERIOR,
-                IVACondition.CLIENTE_DEL_EXTERIOR,
-                IVACondition.IVA_LIBERADO_LEY_19640,
-                IVACondition.MONOTRIBUTISTA_SOCIAL,
-                IVACondition.IVA_NO_ALCANZADO,
-                IVACondition.MONOTRIBUTISTA_TRABAJADOR_INDEPENDIENTE_PROMOVIDO
-            }
+        @property
+        def requires_card_data(self) -> bool:
+            """Check if card data is required"""
+            card_methods = {PaymentMethod.TARJETA_DEBITO, PaymentMethod.TARJETA_CREDITO}
+            return any(method in card_methods for method in self.selected_methods)
 
-        if condition not in valid_conditions:
-            raise ValueError(
-                f'Invalid IVA condition {condition} for issuer type {issuer_type.name}'
+    # Usage Examples
+    def example_payment_validations():
+        try:
+            # Valid payment combination
+            payment_info = create_payment_method_info(
+                PaymentMethod.CONTADO,
+                PaymentMethod.TARJETA_CREDITO
             )
-        return self
+            
+            # Check if card data needed
+            if payment_info.requires_card_data:
+                print("Card data required")
+            
+            # This will raise an error:
+            invalid_payment = create_payment_method_info()  # No methods selected
+            
+        except ValueError as e:
+            print(f"Validation error: {e}")
+    ```
 
-# Usage Examples
-def example_iva_validations():
-    try:
-        # Valid for Responsable Inscripto
-        ri_condition = create_iva_condition_info(
-            condition=IVACondition.IVA_RESPONSABLE_INSCRIPTO,
-            issuer_type=IssuerType.RESPONSABLE_INSCRIPTO
+6.  **IVA Condition Validation**
+
+    *   Validates recipient's IVA condition
+    *   Maps to AFIP's official condition codes
+    *   Ensures valid condition selection
+    *   Maintains Spanish descriptions for UI consistency
+
+    ```python
+    # 5. IVA Condition Validation Example
+    from enum import IntEnum
+    from pydantic import BaseModel, Field, model_validator
+    from .invoice_types import IssuerType
+
+    class IVACondition(IntEnum):
+        """IVA conditions in AFIP's system"""
+        # Common conditions for both issuer types
+        IVA_RESPONSABLE_INSCRIPTO = 1
+        RESPONSABLE_MONOTRIBUTO = 6
+        MONOTRIBUTISTA_SOCIAL = 13
+        MONOTRIBUTISTA_TRABAJADOR_INDEPENDIENTE_PROMOVIDO = 16
+
+        # Additional conditions for MONOTRIBUTO issuer
+        IVA_SUJETO_EXENTO = 4
+        CONSUMIDOR_FINAL = 5
+        SUJETO_NO_CATEGORIZADO = 7
+        PROVEEDOR_DEL_EXTERIOR = 8
+        CLIENTE_DEL_EXTERIOR = 9
+        IVA_LIBERADO_LEY_19640 = 10
+        IVA_NO_ALCANZADO = 15
+
+    class IVAConditionInfo(BaseModel):
+        """IVA condition validation"""
+        condition: IVACondition = Field(
+            description="IVA condition of the invoice recipient"
         )
-        print(f"Valid RI condition: {IVA_CONDITION_DESCRIPTIONS[ri_condition.condition]}")
-
-        # Valid for Monotributo
-        mono_condition = create_iva_condition_info(
-            condition=IVACondition.CONSUMIDOR_FINAL,
-            issuer_type=IssuerType.MONOTRIBUTO
+        issuer_type: IssuerType = Field(
+            description="Type of issuer creating the invoice"
         )
-        print(f"Valid Monotributo condition: {IVA_CONDITION_DESCRIPTIONS[mono_condition.condition]}")
 
-        # This will raise an error - invalid combination
-        invalid_condition = create_iva_condition_info(
-            condition=IVACondition.CONSUMIDOR_FINAL,
-            issuer_type=IssuerType.RESPONSABLE_INSCRIPTO
-        )
-    except ValueError as e:
-        print(f"Validation error: {e}")
+        def validate_condition_for_issuer(self) -> bool:
+            if self.issuer_type == IssuerType.RESPONSABLE_INSCRIPTO:
+                valid_conditions = {IVACondition.IVA_RESPONSABLE_INSCRIPTO}
+            else:  # MONOTRIBUTO
+                valid_conditions = {IVACondition.IVA_RESPONSABLE_INSCRIPTO, IVACondition.CONSUMIDOR_FINAL}
+                
+            if self.condition not in valid_conditions:
+                raise ValueError(f'Invalid IVA condition {self.condition} for issuer type {self.issuer_type}')
+            return True
 
-# 6. CUIT Validation Example
-from pydantic import BaseModel, Field, field_validator
+    # Usage Examples
+    def example_iva_validations():
+        try:
+            # Valid combination: Monotributo issuer can have Consumidor Final condition
+            valid_iva = IVAConditionInfo(
+                condition=IVACondition.CONSUMIDOR_FINAL,
+                issuer_type=IssuerType.MONOTRIBUTO
+            )
+            valid_iva.validate_condition_for_issuer()
+            print("Success! Valid IVA condition for issuer type")
+        except ValueError as e:
+            print(f"Error: {e}")
 
-class CUITNumber(BaseModel):
-    """CUIT validation model"""
-    number: str = Field(..., min_length=11, max_length=11)
+        try:
+            # Invalid combination: Responsable Inscripto cannot have Consumidor Final condition
+            invalid_iva = IVAConditionInfo(
+                condition=IVACondition.CONSUMIDOR_FINAL,
+                issuer_type=IssuerType.RESPONSABLE_INSCRIPTO
+            )
+            invalid_iva.validate_condition_for_issuer()
+            print("This line won't be reached")
+        except ValueError as e:
+            print(f"Error: {e}")  # Output: Error: Invalid IVA condition 5 for issuer type 1
+    ```
 
-    @field_validator('number')
-    @classmethod
-    def validate_cuit_format(cls, v: str) -> str:
-        if not v.isdigit():
-            raise ValueError('CUIT must contain only numbers')
-        if len(v) != 11:
-            raise ValueError('CUIT must be exactly 11 digits long')
-        return v
+7.  **CUIT Validation**
 
-    @classmethod
-    def from_string(cls, value: str) -> 'CUITNumber':
-        # Remove any non-numeric characters
-        cleaned_value = ''.join(filter(str.isdigit, value))
-        return cls(number=cleaned_value)
+    *   Validates CUIT (Código Único de Identificación Tributaria)
+    *   Ensures exactly 11 digits
+    *   Validates numeric-only input
+    *   Automatic cleaning of non-numeric characters
+    *   Prepared for future taxpayer type and verification digit validations
 
-# Usage Examples
-def example_cuit_validations():
-    try:
-        # Valid CUIT
-        cuit_info = create_cuit_number("20123456789")
-        print(f"Valid CUIT: {cuit_info.number}")
+    ```python
+    # 6. CUIT Validation Example
+    from pydantic import BaseModel, Field
+
+    class CUITNumber(BaseModel):
+        number: str = Field(..., min_length=11, max_length=11)
         
-        # These will raise validation errors:
-        invalid_cuit1 = create_cuit_number("123")  # Too short
-        invalid_cuit2 = create_cuit_number("2012345678A")  # Contains a letter
-        
+        @classmethod
+        def from_string(cls, value: str) -> 'CUITNumber':
+            # Remove any non-numeric characters
+            cleaned_value = ''.join(filter(str.isdigit, value))
+            return cls(number=cleaned_value)
+
+    # Success case
+    try:
+        # Valid CUIT with correct format
+        valid_cuit = CUITNumber.from_string("20-12345678-9")
+        print(f"Success! Valid CUIT: {valid_cuit.number}")  # Output: Success! Valid CUIT: 20123456789
     except ValueError as e:
-        print(f"Validation error: {e}")
+        print(f"Error: {e}")
+
+    # Error cases
+    try:
+        # Invalid CUIT (too short)
+        invalid_cuit = CUITNumber.from_string("123")
+        print("This line won't be reached")
+    except ValueError as e:
+        print(f"Error: {e}")  # Output: Error: Field number length must be between 11 and 11 characters
+    ```
 
 #### Environment Variables
+
 The following environment variables are validated against these models:
-```env
-PUNTO_VENTA = 00005
-ISSUER_TYPE = RESPONSABLE_INSCRIPTO
-INVOICE_TYPE = FACTURA_A
-CURRENCY = DOL  # USD Dollar code
-CONCEPT_TYPE = SERVICIOS
-PAYMENT_METHODS = ["CONTADO", "TARJETA_CREDITO"]  # Multiple methods allowed
-IVA_CONDITION = "IVA_RESPONSABLE_INSCRIPTO"  # Recipient's IVA condition
-CUIT = "20123456789"  # 11 digits required
-```
 
 #### Validation Rules Summary
 1. **Punto de Venta**:
