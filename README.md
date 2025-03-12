@@ -104,6 +104,13 @@ The system implements strict validation for various invoice parameters using Pyd
      - Start date cannot be after today
      - Billing period required for services
 
+5. **Payment Methods Validation**
+   - Validates payment method selections for invoices
+   - Supports multiple payment method selection
+   - Validates card payment requirements
+   - Ensures at least one payment method is selected
+   - Maps to AFIP's official payment method codes
+
 #### Code Examples
 
 ```python
@@ -224,6 +231,54 @@ def example_issuance_validations():
     except ValueError as e:
         print(f"Validation error: {e}")
 
+# 4. Payment Methods Validation Example
+from enum import IntEnum
+from typing import Set
+from pydantic import BaseModel, Field
+
+class PaymentMethod(IntEnum):
+    """Payment methods available in AFIP's system"""
+    CONTADO = 1
+    TARJETA_DEBITO = 69
+    TARJETA_CREDITO = 68
+    CUENTA_CORRIENTE = 96
+    CHEQUE = 97
+    TRANSFERENCIA_BANCARIA = 91
+    OTRA = 99
+    OTROS_MEDIOS_ELECTRONICOS = 90
+
+class PaymentMethodInfo(BaseModel):
+    """Payment methods selection validation"""
+    selected_methods: Set[PaymentMethod] = Field(
+        default_factory=set,
+        description="Set of selected payment methods"
+    )
+
+    @property
+    def requires_card_data(self) -> bool:
+        """Check if card data is required"""
+        card_methods = {PaymentMethod.TARJETA_DEBITO, PaymentMethod.TARJETA_CREDITO}
+        return any(method in card_methods for method in self.selected_methods)
+
+# Usage Examples
+def example_payment_validations():
+    try:
+        # Valid payment combination
+        payment_info = create_payment_method_info(
+            PaymentMethod.CONTADO,
+            PaymentMethod.TARJETA_CREDITO
+        )
+        
+        # Check if card data needed
+        if payment_info.requires_card_data:
+            print("Card data required")
+        
+        # This will raise an error:
+        invalid_payment = create_payment_method_info()  # No methods selected
+        
+    except ValueError as e:
+        print(f"Validation error: {e}")
+
 #### Environment Variables
 The following environment variables are validated against these models:
 ```env
@@ -232,6 +287,7 @@ ISSUER_TYPE = RESPONSABLE_INSCRIPTO
 INVOICE_TYPE = FACTURA_A
 CURRENCY = DOL  # USD Dollar code
 CONCEPT_TYPE = SERVICIOS
+PAYMENT_METHODS = ["CONTADO", "TARJETA_CREDITO"]  # Multiple methods allowed
 ```
 
 #### Validation Rules Summary
@@ -273,6 +329,20 @@ CONCEPT_TYPE = SERVICIOS
      - Payment due date ≥ End date
      - All dates validated against current date
 
+6. **Payment Methods**:
+   - At least one payment method must be selected
+   - Multiple payment methods allowed
+   - Card payments (credit/debit) require additional data
+   - Valid codes:
+     - "1": Contado
+     - "69": Tarjeta de Débito
+     - "68": Tarjeta de Crédito
+     - "96": Cuenta Corriente
+     - "97": Cheque
+     - "91": Transferencia Bancaria
+     - "99": Otra
+     - "90": Otros medios electrónicos
+
 #### Error Handling
 The validation system provides clear error messages for:
 - Invalid punto de venta format
@@ -284,6 +354,9 @@ The validation system provides clear error messages for:
 - Missing billing period for services
 - Future start dates
 - Past due dates
+- Missing payment method selection
+- Invalid payment method combinations
+- Missing required card data
 
 ### Testing
 Test scripts are organized by service and functionality:
