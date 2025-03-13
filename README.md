@@ -411,6 +411,100 @@ The system implements strict validation for various invoice parameters using Pyd
         print(f"Error: {e}")  # Output: Error: Field number length must be between 11 and 11 characters
     ```
 
+8. **Service Invoice Content Validation**
+   * Validates service codes, unit prices, discounts, and VAT rates
+   * Different validation rules based on issuer type (Responsable Inscripto vs Monotributo)
+   * Automatic calculation of discounts and VAT amounts
+   * Strict decimal place handling for financial values
+
+   ```python
+   # Service Invoice Content Examples
+   from decimal import Decimal
+   from models.invoice_content_services import create_service_invoice_line
+   from models.invoice_types import IssuerType
+   
+   # Example 1: Valid Monotributo service line
+   try:
+       mono_service = create_service_invoice_line(
+           service_code="1234",          # Valid 4-digit code
+           unit_price="1000.50",         # Valid price with decimals
+           issuer_type=IssuerType.MONOTRIBUTO,
+           discount_percentage="10"       # Optional 10% discount
+       )
+       print(f"Base price: ${mono_service.unit_price.amount}")
+       print(f"After 10% discount: ${mono_service.discounted_price}")
+       # Output:
+       # Base price: $1000.50
+       # After 10% discount: $900.45
+   except ValueError as e:
+       print(f"Validation error: {e}")
+
+   # Example 2: Valid Responsable Inscripto service line with VAT
+   try:
+       ri_service = create_service_invoice_line(
+           service_code="5678",
+           unit_price="2000.75",
+           issuer_type=IssuerType.RESPONSABLE_INSCRIPTO,
+           discount_percentage="5",
+           vat_rate=VATRate.VEINTIUNO    # 21% VAT rate
+       )
+       print(f"Base price: ${ri_service.unit_price.amount}")
+       print(f"After 5% discount: ${ri_service.discounted_price}")
+       print(f"Final price with VAT: ${ri_service.total_price}")
+       # Output:
+       # Base price: $2000.75
+       # After 5% discount: $1900.71
+       # Final price with VAT: $2299.86
+   except ValueError as e:
+       print(f"Validation error: {e}")
+
+   # Example 3: Invalid service code (too short)
+   try:
+       create_service_invoice_line(
+           service_code="123",           # Invalid: only 3 digits
+           unit_price="1000",
+           issuer_type=IssuerType.MONOTRIBUTO
+       )
+   except ValueError as e:
+       print(f"Validation error: {e}")
+       # Output: Validation error: Service code must be exactly 4 digits long
+
+   # Example 4: Invalid price format
+   try:
+       create_service_invoice_line(
+           service_code="1234",
+           unit_price="1000.999",        # Invalid: too many decimal places
+           issuer_type=IssuerType.MONOTRIBUTO
+       )
+   except ValueError as e:
+       print(f"Validation error: {e}")
+       # Output: Validation error: Unit price cannot have more than 2 decimal places
+
+   # Example 5: Missing VAT rate for Responsable Inscripto
+   try:
+       create_service_invoice_line(
+           service_code="1234",
+           unit_price="1000",
+           issuer_type=IssuerType.RESPONSABLE_INSCRIPTO  # Requires VAT rate
+       )
+   except ValueError as e:
+       print(f"Validation error: {e}")
+       # Output: Validation error: VAT rate is required for Responsable Inscripto
+   ```
+
+   **Validation Rules**:
+   - Service Code: Must be exactly 4 digits (e.g., "1234")
+   - Unit Price: 
+     - Valid: "1000", "750.70", "1234.56"
+     - Invalid: "1000.999" (too many decimals), "ABC" (non-numeric)
+   - Discount: 
+     - Valid: "0", "10", "5.5", "100"
+     - Invalid: "101" (over 100%), "-5" (negative)
+   - VAT Rate:
+     - Required for Responsable Inscripto only
+     - Common rates: 21% (standard), 10.5% (reduced), 27% (special)
+     - Not applicable for Monotributo
+
 #### Environment Variables
 
 The following environment variables are validated against these models:
@@ -532,32 +626,4 @@ uv run test_auth
 ```
 
 2. `test_service_comprobantes`: Tests Comprobantes en línea service navigation
-```bash
-uv run test_service_comprobantes
 ```
-
-3. `test_select_invoice_type`: Tests invoice type selection process
-```bash
-uv run test_select_invoice_type
-```
-
-### Next Steps in Development
-- [ ] Complete invoice form automation
-- [ ] Add form data validation models
-- [ ] Implement form field mapping
-- [ ] Add CSV/Google Sheets integration
-- [ ] Implement concurrent processing
-- [ ] Add proper logging system
-- [ ] Implement error recovery mechanisms
-
-### Development Guidelines
-1. Always maintain human-like interaction patterns
-2. Verify CUIT at critical steps
-3. Use verbose logging during development
-4. Keep service-specific code in dedicated modules
-5. Follow the existing modular architecture
-6. Implement proper validation for all input parameters
-7. Use Pydantic models for data validation
-8. Handle new window/tab contexts properly
-
-
