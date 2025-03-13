@@ -89,14 +89,21 @@ async def fill_recipient_data(page: Page, verbose: bool = False) -> bool:
         # Select payment method
         if verbose: print(f"Selecting payment method: {payment_method.name}")
 
-        payment_checkbox_selector = f'input#formadepago{payment_method.value}'
+        # Get the form ID using the model's method
+        form_id = payment_info.get_form_id(payment_method)
+        payment_checkbox_selector = f'input#formadepago{form_id}'
+        if verbose: print(f"Using checkbox selector: {payment_checkbox_selector}")
+
         await page.wait_for_selector(payment_checkbox_selector, timeout=5000)
         await asyncio.sleep(random.uniform(0.5, 1))
 
-        # Check if the checkbox is already checked
-        is_checked = await page.evaluate(f'document.querySelector("{payment_checkbox_selector}").checked')
-        if not is_checked:
-            await page.check(payment_checkbox_selector)
+        # Verify the value attribute matches our expected payment method value
+        checkbox_value = await page.get_attribute(payment_checkbox_selector, 'value')
+        if checkbox_value != str(payment_method.value):
+            raise ValueError(
+                f"Checkbox value mismatch for {payment_method.name}: "
+                f"expected {payment_method.value}, found {checkbox_value}"
+            )
 
         # If payment method requires card data, handle additional fields
         if payment_info.requires_card_data:

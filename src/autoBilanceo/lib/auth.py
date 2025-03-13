@@ -114,6 +114,8 @@ class AFIPAuthenticator:
     async def authenticate(self, verbose: bool = False) -> bool:
         """Handle AFIP authentication process"""
         try:
+            if verbose: print(f"Authenticating...")
+
             await self.setup()
             if not self.page:
                 raise Exception("Browser setup failed")
