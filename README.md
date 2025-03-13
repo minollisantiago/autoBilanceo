@@ -46,7 +46,7 @@ We've implemented the initial steps of invoice generation with:
 - ✓ Find the `Comprobantes en línea` service
 - ✓ Navigate to invoice generator
 - ✓ Select punto de venta and invoice type
-- [ ] Complete invoice form with data
+- ✓ Complete invoice form with data
 - [ ] Submit form and verify success
 - [ ] Implement batch processing
 - [ ] Add CSV/Google Sheets integration
@@ -60,10 +60,21 @@ We've implemented the initial steps of invoice generation with:
 
 #### 2. Service-Specific Modules
 Located in `lib/services/`:
-- **comprobantes.py**: Handles Comprobantes en línea service operations
+- **`lib/services/comprobantes/**`**: All Comprobantes en línea service related operations
   - `verify_rcel_page()`: Verifies service page state
   - `navigate_to_invoice_generator()`: Handles navigation to invoice generator
   - `select_invoice_type()`: Manages punto de venta and invoice type selection
+  - `step3_fill_invoice_issuance_data_form()`: Handles invoice issuance data form
+    - Validates and fills issuance date, concept type
+    - Handles billing period dates for services
+  - `step4_fill_recipient_form()`: Manages recipient data form
+    - Validates and fills IVA condition, CUIT number
+    - Handles payment method selection and card data
+  - `step5_fill_invoice_content_form()`: Handles invoice content form
+    - Validates and fills service code, concept, unit price
+    - Manages discounts rates
+    - Handles IVA rates for RESPONSABLE_INSCRIPTO
+
 
 #### 3. Models
 Located in `models/`:
@@ -585,12 +596,41 @@ The validation system provides clear error messages for:
 - Non-numeric CUIT characters
 
 ### Testing
-Test scripts are organized by service and functionality:
+Test scripts are organized by service and functionality. All tests can be run using `uv run` followed by the script name:
 
-1. `test_auth`: Tests authentication only
+#### 1. Authentication Testing
+Tests basic AFIP authentication:
 ```bash
 uv run test_auth
 ```
 
-2. `test_service_comprobantes`: Tests Comprobantes en línea service navigation
+#### 2. Comprobantes en línea Service Testing
+A series of progressive tests for the invoice generation workflow:
+
+1. Navigation to Invoice Generator:
+```bash
+uv run test_comp_nav
 ```
+Tests navigation from authentication through service selection to the invoice generator.
+
+2. Invoice Type Selection:
+```bash
+uv run test_comp_type
+```
+Tests the punto de venta and invoice type selection process.
+
+3. Form Filling Tests:
+```bash
+# Test invoice issuance data form
+uv run test_comp_form_1
+
+# Test recipient data form
+uv run test_comp_form_2
+
+# Test invoice content form
+uv run test_comp_form_3
+```
+
+Each test builds upon the previous steps, allowing for isolated testing of specific functionality. All tests include verbose output for debugging purposes and run in non-headless mode by default during testing.
+
+Note: All test scripts automatically handle browser setup and cleanup, including proper closing of browser instances after test completion.
