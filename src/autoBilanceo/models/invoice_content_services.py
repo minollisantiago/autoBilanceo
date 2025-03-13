@@ -210,8 +210,8 @@ class ServiceInvoiceLine(BaseModel):
     def total_price(self) -> Decimal:
         """Calculate final price including IVA if applicable"""
         base_price = self.discounted_price
-        if (self.issuer_type == IssuerType.RESPONSABLE_INSCRIPTO 
-            and self.iva_rate 
+        if (self.issuer_type == IssuerType.RESPONSABLE_INSCRIPTO
+            and self.iva_rate
             and self.iva_rate.rate > 0):
             return base_price * (1 + self.iva_rate.rate / 100)
         return base_price

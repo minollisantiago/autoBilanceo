@@ -23,6 +23,7 @@ test_comp_nav = "autoBilanceo.tests.services.comprobantes.test_step1_nav_to_gene
 test_comp_type = "autoBilanceo.tests.services.comprobantes.test_step2_select_invoice_type:run"
 test_comp_form_1 = "autoBilanceo.tests.services.comprobantes.test_step3_fill_invoice_issuance_form:run"
 test_comp_form_2 = "autoBilanceo.tests.services.comprobantes.test_step4_fill_recipient_form:run"
+test_comp_form_3 = "autoBilanceo.tests.services.comprobantes.test_step5_fill_invoice_content_form:run"
 
 [build-system]
 requires = ["hatchling"]
