@@ -39,12 +39,13 @@ async def fill_invoice_issuance_data_form(page: Page, verbose: bool = False) -> 
         if verbose: print("✓ Valid issuance data")
 
         # Fill issuance date
-        if verbose: print(f"Filling issuance date: {issuance_data.issuance_date.format_for_afip()}")
+        issuance_date = issuance_data.issuance_date.format_for_afip()
+        if verbose: print(f"Filling issuance date: {issuance_date}")
 
         date_input_selector = 'input#fc'
         await page.wait_for_selector(date_input_selector, timeout=5000)
         await asyncio.sleep(random.uniform(0.5, 1))
-        await page.fill(date_input_selector, issuance_data.issuance_date.format_for_afip())
+        await page.fill(date_input_selector, issuance_date)
 
         # Select concept type
         if verbose: print(f"Selecting concept type: {issuance_data.concept_type.name}")
@@ -59,30 +60,28 @@ async def fill_invoice_issuance_data_form(page: Page, verbose: bool = False) -> 
             if verbose: print("Filling billing period dates...")
 
             # Fill start date
+            start_date = issuance_data.billing_period.start_date.format_for_afip()
             start_date_selector = 'input#fsd'
             await page.wait_for_selector(start_date_selector, timeout=5000)
             await asyncio.sleep(random.uniform(0.5, 1))
-            await page.fill(
-                start_date_selector,
-                issuance_data.billing_period.start_date.format_for_afip()
-            )
+            await page.fill(start_date_selector, start_date)
+            if verbose: print(f"Filling billing period start date: {start_date}")
 
             # Fill end date
+            end_date = issuance_data.billing_period.end_date.format_for_afip()
             end_date_selector = 'input#fsh'
             await page.wait_for_selector(end_date_selector, timeout=5000)
             await asyncio.sleep(random.uniform(0.5, 1))
-            await page.fill(
-                end_date_selector,
-                issuance_data.billing_period.end_date.format_for_afip())
+            await page.fill(end_date_selector, end_date)
+            if verbose: print(f"Filling billing period end date: {end_date}")
 
             # Fill payment due date
+            due_date = issuance_data.billing_period.payment_due_date.format_for_afip()
             due_date_selector = 'input#vencimientopago'
             await page.wait_for_selector(due_date_selector, timeout=5000)
             await asyncio.sleep(random.uniform(0.5, 1))
-            await page.fill(
-                due_date_selector,
-                issuance_data.billing_period.payment_due_date.format_for_afip()
-            )
+            await page.fill(due_date_selector, due_date)
+            if verbose: print(f"Filling billing period due date: {due_date}")
 
             if verbose: print("✓ Successfully filled billing period")
 
