@@ -14,7 +14,7 @@ from ....models.invoice_payment_methods import (
     create_payment_method_info,
 )
 
-async def fill_recipient_data(page: Page, verbose: bool = False) -> bool:
+async def fill_recipient_form(page: Page, verbose: bool = False) -> bool:
     """
     Fill the recipient data form (Step 2 of 4).
 

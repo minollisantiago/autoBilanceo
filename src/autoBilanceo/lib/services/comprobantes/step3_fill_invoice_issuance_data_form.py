@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from playwright.async_api import Page
 from ....models.invoice_issuance_data import ConceptType, create_issuance_data
 
-async def fill_invoice_issuance_data(page: Page, verbose: bool = False) -> bool:
+async def fill_invoice_issuance_data_form(page: Page, verbose: bool = False) -> bool:
     """
     Fill the invoice issuance data form (Step 1 of 4).
 

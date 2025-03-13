@@ -4,7 +4,7 @@ from ....lib.services.comprobantes import (
     select_invoice_type,
     verify_rcel_page,
     navigate_to_invoice_generator,
-    fill_invoice_issuance_data,
+    fill_invoice_issuance_data_form,
 )
 
 async def main():
@@ -44,7 +44,7 @@ async def main():
                             print("✓ Successfully selected invoice type")
 
                             # Fill form 1: invoice issuance data
-                            if await operator.execute_operation(fill_invoice_issuance_data, {"verbose": True}, verbose=True):
+                            if await operator.execute_operation(fill_invoice_issuance_data_form, {"verbose": True}, verbose=True):
                                 print("✓ Successfully filled issuance data form")
 
                     else:
