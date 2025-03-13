@@ -418,92 +418,59 @@ The system implements strict validation for various invoice parameters using Pyd
    * Strict decimal place handling for financial values
 
    ```python
-   # Service Invoice Content Examples
+   # VAT Rate Validation Examples
    from decimal import Decimal
    from models.invoice_content_services import create_service_invoice_line
    from models.invoice_types import IssuerType
-   
-   # Example 1: Valid Monotributo service line
-   try:
-       mono_service = create_service_invoice_line(
-           service_code="1234",          # Valid 4-digit code
-           unit_price="1000.50",         # Valid price with decimals
-           issuer_type=IssuerType.MONOTRIBUTO,
-           discount_percentage="10"       # Optional 10% discount
-       )
-       print(f"Base price: ${mono_service.unit_price.amount}")
-       print(f"After 10% discount: ${mono_service.discounted_price}")
-       # Output:
-       # Base price: $1000.50
-       # After 10% discount: $900.45
-   except ValueError as e:
-       print(f"Validation error: {e}")
 
-   # Example 2: Valid Responsable Inscripto service line with VAT
+   # Example 1: Standard VAT rate (21%)
    try:
-       ri_service = create_service_invoice_line(
-           service_code="5678",
-           unit_price="2000.75",
+       service = create_service_invoice_line(
+           service_code="1234",
+           unit_price="1000",
            issuer_type=IssuerType.RESPONSABLE_INSCRIPTO,
-           discount_percentage="5",
-           vat_rate=VATRate.VEINTIUNO    # 21% VAT rate
+           vat_rate="21"    # User inputs 21 for 21% VAT
        )
-       print(f"Base price: ${ri_service.unit_price.amount}")
-       print(f"After 5% discount: ${ri_service.discounted_price}")
-       print(f"Final price with VAT: ${ri_service.total_price}")
-       # Output:
-       # Base price: $2000.75
-       # After 5% discount: $1900.71
-       # Final price with VAT: $2299.86
-   except ValueError as e:
-       print(f"Validation error: {e}")
+       print(f"Price with 21% VAT: ${service.total_price}")  # Output: Price with 21% VAT: $1210.00
 
-   # Example 3: Invalid service code (too short)
+   # Example 2: Special case - Exempt
    try:
-       create_service_invoice_line(
-           service_code="123",           # Invalid: only 3 digits
-           unit_price="1000",
-           issuer_type=IssuerType.MONOTRIBUTO
-       )
-   except ValueError as e:
-       print(f"Validation error: {e}")
-       # Output: Validation error: Service code must be exactly 4 digits long
-
-   # Example 4: Invalid price format
-   try:
-       create_service_invoice_line(
-           service_code="1234",
-           unit_price="1000.999",        # Invalid: too many decimal places
-           issuer_type=IssuerType.MONOTRIBUTO
-       )
-   except ValueError as e:
-       print(f"Validation error: {e}")
-       # Output: Validation error: Unit price cannot have more than 2 decimal places
-
-   # Example 5: Missing VAT rate for Responsable Inscripto
-   try:
-       create_service_invoice_line(
+       service = create_service_invoice_line(
            service_code="1234",
            unit_price="1000",
-           issuer_type=IssuerType.RESPONSABLE_INSCRIPTO  # Requires VAT rate
+           issuer_type=IssuerType.RESPONSABLE_INSCRIPTO,
+           vat_rate="EXENTO"
+       )
+       print(f"Exempt price: ${service.total_price}")  # Output: Exempt price: $1000.00
+
+   # Example 3: Invalid VAT rate
+   try:
+       service = create_service_invoice_line(
+           service_code="1234",
+           unit_price="1000",
+           issuer_type=IssuerType.RESPONSABLE_INSCRIPTO,
+           vat_rate="15"    # Invalid: 15% is not a valid VAT rate
        )
    except ValueError as e:
-       print(f"Validation error: {e}")
-       # Output: Validation error: VAT rate is required for Responsable Inscripto
+       print(f"Error: {e}")  
+       # Output: Error: Invalid VAT rate. Valid rates are: 0, 2.5, 5, 10.5, 21, 27%, NO_GRAVADO, or EXENTO
    ```
 
-   **Validation Rules**:
-   - Service Code: Must be exactly 4 digits (e.g., "1234")
-   - Unit Price: 
-     - Valid: "1000", "750.70", "1234.56"
-     - Invalid: "1000.999" (too many decimals), "ABC" (non-numeric)
-   - Discount: 
-     - Valid: "0", "10", "5.5", "100"
-     - Invalid: "101" (over 100%), "-5" (negative)
-   - VAT Rate:
-     - Required for Responsable Inscripto only
-     - Common rates: 21% (standard), 10.5% (reduced), 27% (special)
-     - Not applicable for Monotributo
+   **VAT Rate Validation Rules**:
+   - Valid percentage inputs:
+     - "0" (0%)
+     - "2.5" (2.5%)
+     - "5" (5%)
+     - "10.5" (10.5%)
+     - "21" (21%)
+     - "27" (27%)
+   - Special cases:
+     - "NO_GRAVADO" (Not taxed)
+     - "EXENTO" (Exempt)
+   - Invalid inputs:
+     - Any other percentage (e.g., "15")
+     - Invalid formats (e.g., "21%", "21.00")
+     - Empty or non-numeric values
 
 #### Environment Variables
 

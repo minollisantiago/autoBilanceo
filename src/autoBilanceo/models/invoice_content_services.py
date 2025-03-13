@@ -1,33 +1,72 @@
 from enum import IntEnum
-from typing import Optional
+from typing import Optional, Dict
 from .invoice_types import IssuerType
 from decimal import Decimal, InvalidOperation
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-class IVARate(IntEnum):
-    """
-    Enum representing different iva rates available in AFIP's invoice system
-    """
-    NO_GRAVADO = 1      # No gravado
-    EXENTO = 2          # Exento
-    CERO = 3            # 0%
-    DOS_CINCO = 9       # 2.5%
-    CINCO = 8           # 5%
-    DIEZ_CINCO = 4      # 10.5%
-    VEINTIUNO = 5       # 21%
-    VEINTISIETE = 6     # 27%
+class IVARateInternal(IntEnum):
+    """Internal enum for AFIP's IVA rate codes"""
+    NO_GRAVADO = 1
+    EXENTO = 2
+    CERO = 3
+    DOS_CINCO = 9
+    CINCO = 8
+    DIEZ_CINCO = 4
+    VEINTIUNO = 5
+    VEINTISIETE = 6
 
-# Mapping of iva rate descriptions and their decimal values
-IVA_RATE_INFO = {
-    IVARate.NO_GRAVADO: {"description": "No gravado", "rate": Decimal('0')},
-    IVARate.EXENTO: {"description": "Exento", "rate": Decimal('0')},
-    IVARate.CERO: {"description": "0%", "rate": Decimal('0')},
-    IVARate.DOS_CINCO: {"description": "2,5%", "rate": Decimal('2.5')},
-    IVARate.CINCO: {"description": "5%", "rate": Decimal('5')},
-    IVARate.DIEZ_CINCO: {"description": "10,5%", "rate": Decimal('10.5')},
-    IVARate.VEINTIUNO: {"description": "21%", "rate": Decimal('21')},
-    IVARate.VEINTISIETE: {"description": "27%", "rate": Decimal('27')}
+# Mapping between user-input percentages and internal AFIP codes
+IVA_RATE_MAPPING = {
+    Decimal('0'): IVARateInternal.CERO,
+    Decimal('2.5'): IVARateInternal.DOS_CINCO,
+    Decimal('5'): IVARateInternal.CINCO,
+    Decimal('10.5'): IVARateInternal.DIEZ_CINCO,
+    Decimal('21'): IVARateInternal.VEINTIUNO,
+    Decimal('27'): IVARateInternal.VEINTISIETE,
+    'NO_GRAVADO': IVARateInternal.NO_GRAVADO,
+    'EXENTO': IVARateInternal.EXENTO
 }
+
+class IVARate(BaseModel):
+    """
+    Model for validating IVA rates using user-friendly percentage values
+    """
+    rate: Decimal = Field(
+        ...,
+        description="IVA rate percentage (e.g., 21 for 21% IVA)"
+    )
+    internal_code: IVARateInternal = Field(
+        description="Internal AFIP code for the IVA rate"
+    )
+
+    @classmethod
+    def from_string(cls, value: str) -> 'IVARate':
+        """
+        Creates a IVARate instance from a string input
+        Accepts percentage values or special cases (NO_GRAVADO, EXENTO)
+        """
+        try:
+            # Handle special cases
+            if value.upper() in ['NO_GRAVADO', 'EXENTO']:
+                internal_code = IVA_RATE_MAPPING[value.upper()]
+                return cls(rate=Decimal('0'), internal_code=internal_code)
+
+            # Handle percentage values
+            rate = Decimal(value)
+            if rate not in IVA_RATE_MAPPING:
+                valid_rates = [str(rate) for rate in IVA_RATE_MAPPING.keys()
+                             if isinstance(rate, Decimal)]
+                raise ValueError(
+                    f'Invalid IVA rate. Valid rates are: {", ".join(valid_rates)}%, '
+                    'NO_GRAVADO, or EXENTO'
+                )
+
+            return cls(
+                rate=rate,
+                internal_code=IVA_RATE_MAPPING[rate]
+            )
+        except (ValueError, InvalidOperation) as e:
+            raise ValueError(f'Invalid IVA rate format: {e}')
 
 class ServiceCode(BaseModel):
     """
@@ -168,18 +207,14 @@ class ServiceInvoiceLine(BaseModel):
         return self.unit_price.amount * discount_multiplier
 
     @property
-    def iva_amount(self) -> Decimal:
-        """Calculate the iva amount if applicable"""
-        if self.issuer_type == IssuerType.MONOTRIBUTO or self.iva_rate is None:
-            return Decimal('0')
-
-        rate = IVA_RATE_INFO[self.iva_rate]['rate']
-        return self.discounted_price * (rate / 100)
-
-    @property
     def total_price(self) -> Decimal:
-        """Calculate the total price including iva if applicable"""
-        return self.discounted_price + self.iva_amount
+        """Calculate final price including IVA if applicable"""
+        base_price = self.discounted_price
+        if (self.issuer_type == IssuerType.RESPONSABLE_INSCRIPTO 
+            and self.iva_rate 
+            and self.iva_rate.rate > 0):
+            return base_price * (1 + self.iva_rate.rate / 100)
+        return base_price
 
 def create_service_invoice_line(
     issuer_type: IssuerType,
@@ -196,7 +231,7 @@ def create_service_invoice_line(
         service_code: 4-digit service code
         unit_price: Price amount as string
         discount_percentage: Optional discount percentage as string
-        iva_rate: iva rate (required for RESPONSABLE_INSCRIPTO, must be None for MONOTRIBUTO)
+        iva_rate: IVA rate (required for RESPONSABLE_INSCRIPTO, must be None for MONOTRIBUTO)
 
     Returns:
         ServiceInvoiceLine instance
