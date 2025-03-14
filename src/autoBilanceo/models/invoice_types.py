@@ -12,7 +12,8 @@ class IssuerType(IntEnum):
 class PuntoVenta(BaseModel):
     """
     Model for validating Punto de Venta number
-    Must be exactly 5 digits, numbers only
+    Must be up to 5 digits, numbers only
+    Shorter numbers will be padded with leading zeros
     """
     number: str = Field(..., min_length=5, max_length=5)
 
@@ -21,9 +22,9 @@ class PuntoVenta(BaseModel):
     def validate_punto_venta(cls, v: str) -> str:
         if not v.isdigit():
             raise ValueError('Punto de venta must contain only numbers')
-        if len(v) != 5:
-            raise ValueError('Punto de venta must be exactly 5 digits long')
-        return v
+        if len(v) > 5:
+            raise ValueError('Punto de venta must be up to 5 digits long')
+        return v.zfill(5)
 
     @classmethod
     def from_string(cls, value: str) -> 'PuntoVenta':

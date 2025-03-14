@@ -74,12 +74,7 @@ class ServiceCode(BaseModel):
     Must be up to 4 digits, numbers only
     Shorter numbers will be padded with leading zeros
     """
-    code: str = Field(
-        ...,
-        min_length=4,
-        max_length=4,
-        description="Service code - must be exactly 4 digits, smaller numbers are padded with leading zeros"
-    )
+    code: str = Field(..., min_length=4, max_length=4)
 
     @field_validator('code')
     @classmethod

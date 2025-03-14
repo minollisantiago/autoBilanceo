@@ -9,3 +9,7 @@ wheels/
 # Virtual environments
 .venv
 .env
+
+# CSV/Json files
+src/autoBilanceo/data/*.csv
+src/autoBilanceo/data/*.json
