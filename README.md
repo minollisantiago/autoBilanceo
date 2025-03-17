@@ -59,30 +59,91 @@ We've implemented the initial steps of invoice generation with:
 - **AFIPOperator**: New generic class for service-specific operations
 
 #### 2. Service-Specific Modules
-Located in `lib/services/`:
-- **`lib/services/comprobantes/**`**: All Comprobantes en línea service related operations
-  - `verify_rcel_page()`: Verifies service page state
-  - `navigate_to_invoice_generator()`: Handles navigation to invoice generator
-  - `select_invoice_type()`: Manages punto de venta and invoice type selection
-  - `step3_fill_invoice_issuance_data_form()`: Handles invoice issuance data form
-    - Validates and fills issuance date, concept type
-    - Handles billing period dates for services
-  - `step4_fill_recipient_form()`: Manages recipient data form
-    - Validates and fills IVA condition, CUIT number
-    - Handles payment method selection and card data
-  - `step5_fill_invoice_content_form()`: Handles invoice content form
-    - Validates and fills service code, concept, unit price
-    - Manages discounts rates
-    - Handles IVA rates for RESPONSABLE_INSCRIPTO
-
+Located in `lib/services/comprobantes/`:
+- **Invoice Generation Flow**: Sequential steps for automated invoice creation
+  - `step1_nav_to_invoice_generator.py`: Initial navigation
+    - Handles empresa selection
+    - Navigates to invoice generator interface
+    - Implements random delays for human-like interaction
+  
+  - `step2_select_invoice_type.py`: Invoice configuration
+    - Validates and selects punto de venta from environment
+    - Validates issuer type compatibility
+    - Handles invoice type selection and validation
+    - Ensures proper form state between selections
+  
+  - `step3_fill_invoice_issuance_data_form.py`: Issuance details
+    - Validates and fills issuance date
+    - Handles concept type selection (Products/Services/Both)
+    - Manages billing period for services:
+      - Start date validation
+      - End date validation
+      - Payment due date validation
+    - Implements business rules for date ranges
+  
+  - `step4_fill_recipient_form.py`: Recipient information
+    - Validates and fills IVA condition based on issuer type
+    - Handles CUIT number validation and input
+    - Manages payment method selection:
+      - Supports multiple payment methods
+      - Handles card payment requirements
+      - Validates payment method combinations
+  
+  - `step5_fill_invoice_content_form.py`: Invoice details
+    - Validates and fills service information:
+      - Service code validation
+      - Service concept description
+      - Unit price handling
+    - Manages optional discount percentages
+    - Handles IVA rates for RESPONSABLE_INSCRIPTO:
+      - Supports all valid AFIP rates (0%, 2.5%, 5%, 10.5%, 21%, 27%)
+      - Handles special cases (NO_GRAVADO, EXENTO)
+    - Implements proper form state management
 
 #### 3. Models
 Located in `models/`:
-- **invoice_types.py**: Contains all invoice-related models and validation
-  - `IssuerType`: Enum for issuer categories
-  - `InvoiceType`: Enum for all available invoice types
-  - `PuntoVenta`: Model for punto de venta validation
-  - Validation functions for invoice type compatibility
+- **invoice_types.py**: Core invoice type definitions
+  - `IssuerType`: Enum for issuer categories (RESPONSABLE_INSCRIPTO, MONOTRIBUTO)
+  - `InvoiceType`: Comprehensive enum for all AFIP invoice types (A, B, C, etc.)
+  - `PuntoVenta`: Model for punto de venta validation with auto-padding
+  - Validation functions for invoice type compatibility per issuer
+
+- **invoice_currency.py**: Currency handling
+  - `CurrencyCode`: Enum covering all AFIP-supported currencies
+  - Organized by regions (Asian, European, American, etc.)
+  - Includes special units (e.g., Derechos Especiales de Giro)
+  - Full Spanish descriptions for UI display
+
+- **invoice_issuance_data.py**: Issuance details validation
+  - `ConceptType`: Enum for product/service types
+  - `IssuanceDate`: Date validation with AFIP format handling
+  - `BillingPeriod`: Period validation for service invoices
+  - Business rules enforcement for date ranges
+
+- **invoice_recipient_data.py**: Recipient information
+  - `IVACondition`: Comprehensive IVA condition validation
+  - `CUITNumber`: CUIT validation with format cleaning
+  - Issuer-specific validation rules
+  - Spanish descriptions for UI consistency
+
+- **invoice_payment_methods.py**: Payment handling
+  - `PaymentMethod`: Enum for all AFIP payment methods
+  - Support for multiple payment method selection
+  - Card payment requirement detection
+  - Validation for payment method combinations
+
+- **invoice_content_services.py**: Service invoice content
+  - `IVARate`: VAT rate validation with AFIP internal codes
+  - `ServiceCode`: Service code validation with auto-padding
+  - `UnitPrice`: Price validation with decimal handling
+  - `DiscountPercentage`: Discount validation with limits
+  - Automatic calculations for:
+    - Discounted prices
+    - VAT amounts
+    - Total prices
+  - Different validation rules for:
+    - RESPONSABLE_INSCRIPTO (requires VAT)
+    - MONOTRIBUTO (no VAT handling)
 
 ### Input Validation
 #### Invoice Parameters Validation
