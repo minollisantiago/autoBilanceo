@@ -1,5 +1,5 @@
 import asyncio
-from ....lib import AFIPAuthenticator, AFIPNavigator, AFIPOperator
+from ....lib import AFIPAuthenticator, BrowserSetup, AFIPNavigator, AFIPOperator
 from ....lib.services.comprobantes import (
     select_invoice_type,
     verify_rcel_page,
@@ -9,9 +9,15 @@ from ....lib.services.comprobantes import (
 )
 
 async def main():
-    auth = AFIPAuthenticator(headless=False) # Set to false for testing
+    setup = BrowserSetup(headless=False)  # Set to false for testing
+    page = await setup.setup()
+
+    if not page:
+        raise Exception("⨯ Browser setup failed")
+
     try:
-        # Test authentication
+        # Authentication
+        auth = AFIPAuthenticator(page)
         success = await auth.authenticate(verbose=True) #Verbose set to true for testing
         if not success:
             print("⨯ Authentication failed")
@@ -20,11 +26,11 @@ async def main():
         print("✓ Successfully authenticated with AFIP")
 
         # Navigation: mis servicios => comprobantes en linea
-        if not auth.page:
+        if not page:
             raise Exception("⨯ Browser setup failed")
         else:
-            navigator = AFIPNavigator(auth.page)
-            async with auth.page.context.expect_page() as service_page_:
+            navigator = AFIPNavigator(page)
+            async with page.context.expect_page() as service_page_:
                 if await navigator.find_service(
                     service_text="COMPROBANTES EN LÍNEA",
                     service_title="rcel",
@@ -58,7 +64,7 @@ async def main():
                     print("⨯ Navigation to service failed")
 
     finally:
-        await auth.close()
+        await setup.close()
 
 def run():
     asyncio.run(main())
