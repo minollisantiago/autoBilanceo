@@ -16,4 +16,4 @@ async def human_type(page: Page, selector: str, text: str):
 
     for char in text:
         await element.type(char, delay=random.uniform(100, 300))
-        await asyncio.sleep(random.uniform(0.1, 0.3)) 
+        await asyncio.sleep(random.uniform(0.1, 0.3))

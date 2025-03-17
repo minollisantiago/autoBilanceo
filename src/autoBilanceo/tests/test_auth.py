@@ -10,7 +10,8 @@ async def main():
 
     try:
         auth = AFIPAuthenticator(page)
-        success = await auth.authenticate(verbose=True) #Verbose set to true for testing
+        #Make sure the cuit is at data/contribuyentes.json
+        success = await auth.authenticate(cuit="20328619548", verbose=True) #Verbose set to true for testing
         if not success:
             print("⨯ Authentication failed")
             return

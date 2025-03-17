@@ -1,62 +1,51 @@
 ### General
-- This project's objective is to develop a set of browser automation tooling
+- This project's objective is to develop a set of browser automation tooling for [afips website](https://auth.afip.gob.ar/contribuyente_/login.xhtml).
 - Its end user is non technical users, but the tools should be usable via CLI commands using the uv package manager as well as via python scripts, to be excecuted using uv as well (uv run ...)
 - The main() script should be on src/autoBilanceo/__init__.py
-
-### Implementation Progress
-
-#### 1. Authentication Module
-We've implemented secure browser automation for AFIP authentication with the following features:
-- Anti-detection measures
-- Human-like interaction patterns
-- Geolocation spoofing (Córdoba, Argentina)
-- Secure credential management via environment variables
-
-##### System Requirements
-Before running the automation, ensure you have the necessary dependencies:
-```bash
-# Install system dependencies
-sudo apt-get install libnss3 libnspr4 libasound2t64
-
-# Install browser binaries
-uv run playwright install
-```
-
-##### Environment Setup
-Create a `.env` file in your project root:
-
-#### 2. Service Navigation Module
-We've implemented secure navigation to AFIP services with:
-- Service discovery and verification
-- New window/tab handling
-- Page state verification
-- CUIT re-verification at service entry
-
-#### 3. Invoice Generation Module
-We've implemented the initial steps of invoice generation with:
-- Empresa selection handling
-- Navigation to invoice generator
-- Punto de venta and invoice type selection with validation
-- Human-like interaction patterns
-
-### Overview of the application flow - browser automation
-- ✓ Navigate to [Afip auth web](https://auth.afip.gob.ar/contribuyente_/login.xhtml)
-- ✓ Authenticate
-- ✓ Navigate to [Mis servicios](https://portalcf.cloud.afip.gob.ar/portal/app/mis-servicios)
-- ✓ Find the `Comprobantes en línea` service
-- ✓ Navigate to invoice generator
-- ✓ Select punto de venta and invoice type
-- ✓ Complete invoice form with data
-- [ ] Submit form and verify success
-- [ ] Implement batch processing
-- [ ] Add CSV/Google Sheets integration
 
 ### Architecture
 
 #### 1. Core Classes
-- **AFIPAuthenticator**: Handles authentication and anti-detection
-- **AFIPNavigator**: Manages service discovery and navigation
-- **AFIPOperator**: New generic class for service-specific operations
+- **BrowserSetup**: Core browser initialization and anti-detection
+  - Advanced anti-detection measures:
+    - User agent rotation (Chrome, Edge, Safari)
+    - Viewport randomization
+    - Geolocation spoofing (Córdoba, Argentina)
+    - Browser fingerprint modification
+    - Custom HTTP headers
+  - Human-like interaction patterns:
+    - Random timing delays
+    - Natural typing simulation
+    - Realistic mouse movements
+  - Security features:
+    - Disabled automation flags
+    - Reduced fingerprinting surface
+    - Secure context handling
+
+- **AFIPAuthenticator**: Authentication management
+  - Secure credential handling via environment variables
+  - Multi-step authentication flow:
+    - CUIT entry and validation
+    - Password handling
+    - Post-login verification
+  - Human-like interaction patterns:
+    - Natural typing delays
+    - Random timing between actions
+  - Robust error handling and validation:
+    - CUIT verification after login
+    - Connection state monitoring
+    - Detailed error reporting
+
+- **AFIPNavigator**: Service navigation (existing implementation)
+  - Service discovery and verification
+  - New window/tab handling
+  - Page state verification
+  - CUIT re-verification at service entry
+
+- **AFIPOperator**: Service operations (existing implementation)
+  - Generic class for service-specific operations
+  - Standardized operation patterns
+  - Error handling and recovery
 
 #### 2. Service-Specific Modules
 Located in `lib/services/comprobantes/`:
@@ -144,6 +133,105 @@ Located in `models/`:
   - Different validation rules for:
     - RESPONSABLE_INSCRIPTO (requires VAT)
     - MONOTRIBUTO (no VAT handling)
+
+### Implementation Progress
+
+#### 1. Authentication Module
+We've implemented secure browser automation for AFIP authentication with the following features:
+- Advanced CUIT validation using Pydantic models
+- Anti-detection measures
+- Human-like interaction patterns
+- Geolocation spoofing (Córdoba, Argentina)
+- Secure credential management via environment variables
+
+```python
+# Authentication with CUIT Validation Example
+from models.cuit import create_cuit_number
+from lib.auth import AFIPAuthenticator
+
+async def example_authentication():
+    # Valid CUIT authentication
+    try:
+        auth = AFIPAuthenticator(page)
+        success = await auth.authenticate(
+            cuit="20-12345678-9",  # Will be automatically cleaned and validated
+            verbose=True
+        )
+        if success:
+            print("✓ Authentication successful")
+    except ValueError as e:
+        print(f"⨯ Authentication failed: {e}")
+
+    # Invalid CUIT format
+    try:
+        await auth.authenticate(
+            cuit="123",  # Too short, will fail validation
+            verbose=True
+        )
+    except ValueError as e:
+        print(f"⨯ Authentication failed: Invalid CUIT format")
+
+    # CUIT verification after login
+    try:
+        success = await auth.verify_CUIT("20-12345678-9")
+        if success:
+            print("✓ CUIT verification successful")
+    except ValueError as e:
+        print(f"⨯ CUIT verification failed: {e}")
+```
+
+Key Features:
+- Strict CUIT validation before authentication attempt
+- Automatic cleaning of CUIT format (removes hyphens and spaces)
+- Double validation during login verification
+- Clear error messages for invalid formats
+- Integration with Pydantic validation models
+
+Error Handling:
+- Invalid CUIT format (non-numeric characters)
+- Incorrect CUIT length
+- CUIT mismatch after login
+- Missing or invalid credentials
+
+##### System Requirements
+Before running the automation, ensure you have the necessary dependencies:
+```bash
+# Install system dependencies
+sudo apt-get install libnss3 libnspr4 libasound2t64
+
+# Install browser binaries
+uv run playwright install
+```
+
+##### Environment Setup
+Create a `.env` file in your project root:
+
+#### 2. Service Navigation Module
+We've implemented secure navigation to AFIP services with:
+- Service discovery and verification
+- New window/tab handling
+- Page state verification
+- CUIT re-verification at service entry
+
+#### 3. Invoice Generation Module
+We've implemented the initial steps of invoice generation with:
+- Empresa selection handling
+- Navigation to invoice generator
+- Punto de venta and invoice type selection with validation
+- Human-like interaction patterns
+
+### Overview of the application flow - browser automation
+- ✓ Navigate to [Afip auth web](https://auth.afip.gob.ar/contribuyente_/login.xhtml)
+- ✓ Authenticate
+- ✓ Navigate to [Mis servicios](https://portalcf.cloud.afip.gob.ar/portal/app/mis-servicios)
+- ✓ Find the `Comprobantes en línea` service
+- ✓ Navigate to invoice generator
+- ✓ Select punto de venta and invoice type
+- ✓ Complete invoice form with data
+- ✓  Submit form and verify success
+- [ ] Implement batch processing
+- [ ] Add CSV/Google Sheets integration
+
 
 ### Input Validation
 #### Invoice Parameters Validation
