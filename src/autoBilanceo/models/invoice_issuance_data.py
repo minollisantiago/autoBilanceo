@@ -1,6 +1,6 @@
 from enum import IntEnum
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from pydantic import BaseModel, field_validator, model_validator
 
 class ConceptType(IntEnum):
@@ -20,8 +20,21 @@ class IssuanceDate(BaseModel):
     @field_validator('date')
     @classmethod
     def validate_date_format(cls, v: datetime) -> datetime:
+        # Check if date is after year 2000
         if v < datetime(2000, 1, 1):
             raise ValueError('Date must be after year 2000')
+
+        # Check if date is within 10 days range (past or future)
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        ten_days_ago = today - timedelta(days=10)
+        ten_days_ahead = today + timedelta(days=10)
+
+        if v < ten_days_ago:
+            raise ValueError('Issuance date cannot be more than 10 days in the past')
+
+        if v > ten_days_ahead:
+            raise ValueError('Issuance date cannot be more than 10 days in the future')
+
         return v
 
     def format_for_afip(self) -> str:
@@ -56,7 +69,7 @@ class BillingPeriod(BaseModel):
         3. payment_due_date is not before today
         4. start_date is not after today
         """
-        now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
         if self.end_date.date < self.start_date.date:
             raise ValueError('End date cannot be before start date')
@@ -64,10 +77,10 @@ class BillingPeriod(BaseModel):
         if self.payment_due_date.date < self.end_date.date:
             raise ValueError('Payment due date cannot be before end date')
 
-        if self.payment_due_date.date < now:
+        if self.payment_due_date.date < today:
             raise ValueError('Payment due date cannot be before today')
 
-        if self.start_date.date > now:
+        if self.start_date.date > today:
             raise ValueError('Start date cannot be after today')
 
         return self
