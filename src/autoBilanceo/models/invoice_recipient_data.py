@@ -2,6 +2,8 @@ from enum import IntEnum
 from .invoice_types import IssuerType
 from pydantic import BaseModel, Field, model_validator, field_validator
 
+# TODO: Replace the CUIT validators here and use the generic version from cuit.py
+
 class IVACondition(IntEnum):
     """
     Enum representing different IVA conditions available in AFIP's invoice system

@@ -1,69 +1,59 @@
-import os
 import random
 import asyncio
-from dotenv import load_dotenv
 from playwright.async_api import Page
-from ....models.invoice_recipient_data import (
-    IVACondition,
-    create_iva_condition_info,
-    create_cuit_number,
-)
 from ....models.invoice_types import IssuerType
-from ....models.invoice_payment_methods import (
-    PaymentMethod,
-    create_payment_method_info,
-)
+from ....models.invoice_payment_methods import PaymentMethod, create_payment_method_info
+from ....models.invoice_recipient_data import IVACondition, create_iva_condition_info, create_cuit_number
 
-async def fill_recipient_form(page: Page, verbose: bool = False) -> bool:
+async def fill_recipient_form(
+    page: Page,
+    issuer_type: str,
+    recipient_iva_condition: str,
+    recipient_cuit: str,
+    payment_method: str,
+    verbose: bool = False
+) -> bool:
     """
     Fill the recipient data form (Step 2 of 4).
 
-    Environment variables used:
-    - ISSUER_TYPE: Type of issuer (must be a valid IssuerType enum value)
-    - RECIPIENT_IVA_CONDITION: IVA condition of the recipient
-    - RECIPIENT_CUIT: CUIT number of the recipient (11 digits)
-    - PAYMENT_METHOD: Payment method(s) to select
+    Args:
+        page: Playwright page instance
+        issuer_type: Type of issuer (must be a valid IssuerType enum value)
+        recipient_iva_condition: IVA condition of the recipient
+        recipient_cuit: CUIT number of the recipient (11 digits)
+        payment_method: Payment method to select
+        verbose: Whether to print progress messages
 
     Returns:
         bool: True if form was filled successfully
     """
     try:
-        load_dotenv()
-
         if verbose: print("Validating recipient data...")
 
         # Get and validate IVA condition
         try:
-            issuer_type = IssuerType[os.getenv('ISSUER_TYPE', '')]
-            iva_condition = IVACondition[os.getenv('RECIPIENT_IVA_CONDITION', '')]
+            issuer_type_enum = IssuerType[issuer_type]
+            iva_condition = IVACondition[recipient_iva_condition]
 
             # Validate IVA condition for issuer type
-            iva_info = create_iva_condition_info(condition=iva_condition, issuer_type=issuer_type)
+            iva_info = create_iva_condition_info(condition=iva_condition, issuer_type=issuer_type_enum)
             if verbose: print(f"✓ Valid IVA condition: {iva_condition.name}")
 
         except (KeyError, ValueError) as e:
             raise ValueError(f"Invalid IVA condition or issuer type: {str(e)}")
 
-        # Get and validate CUIT
-        recipient_cuit = os.getenv('RECIPIENT_CUIT')
-        if not recipient_cuit:
-            raise ValueError("RECIPIENT_CUIT not found in environment variables")
-
+        # Validate CUIT
         try:
             cuit_info = create_cuit_number(recipient_cuit)
             if verbose: print(f"✓ Valid CUIT: {cuit_info.number}")
         except ValueError as e:
             raise ValueError(f"Invalid CUIT format: {str(e)}")
 
-        # Get and validate payment method
-        payment_method_str = os.getenv('PAYMENT_METHOD')
-        if not payment_method_str:
-            raise ValueError("PAYMENT_METHOD not found in environment variables")
-
+        # Validate payment method
         try:
-            payment_method = PaymentMethod[payment_method_str]
-            payment_info = create_payment_method_info(payment_method)
-            if verbose: print(f"✓ Valid payment method: {payment_method.name}")
+            payment_method_enum = PaymentMethod[payment_method]
+            payment_info = create_payment_method_info(payment_method_enum)
+            if verbose: print(f"✓ Valid payment method: {payment_method_enum.name}")
         except (KeyError, ValueError) as e:
             raise ValueError(f"Invalid payment method: {str(e)}")
 
@@ -87,9 +77,9 @@ async def fill_recipient_form(page: Page, verbose: bool = False) -> bool:
         await asyncio.sleep(random.uniform(1, 1.5))
 
         # Select payment method
-        if verbose: print(f"Selecting payment method: {payment_method.name}")
+        if verbose: print(f"Selecting payment method: {payment_method_enum.name}")
 
-        payment_checkbox_selector = f'input[name="formaDePago"][value="{payment_method.value}"]'
+        payment_checkbox_selector = f'input[name="formaDePago"][value="{payment_method_enum.value}"]'
         if verbose: print(f"Using checkbox selector: {payment_checkbox_selector}")
 
         await page.wait_for_selector(payment_checkbox_selector, timeout=5000)

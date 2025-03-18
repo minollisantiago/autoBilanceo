@@ -5,42 +5,44 @@ from ....lib.services.comprobantes import verify_rcel_page, navigate_to_invoice_
 async def main():
     setup = BrowserSetup(headless=False)  # Set to false for testing
     page = await setup.setup()
-
     if not page:
         raise Exception("⨯ Browser setup failed")
 
     try:
+        issuer_cuit = "20328619548"
+
         # Authentication
         auth = AFIPAuthenticator(page)
-        success = await auth.authenticate(verbose=True) #Verbose set to true for testing
+        success = await auth.authenticate(cuit=issuer_cuit, verbose=True) #Verbose set to true for testing
         if not success:
             print("⨯ Authentication failed")
             return
-
         print("✓ Successfully authenticated with AFIP")
 
         # Navigation: mis servicios => comprobantes en linea
-        if not page:
-            raise Exception("⨯ Browser setup failed")
-        else:
-            navigator = AFIPNavigator(page)
-            async with page.context.expect_page() as service_page_:
-                if await navigator.find_service(
-                    service_text="COMPROBANTES EN LÍNEA",
-                    service_title="rcel",
-                    verify_page=verify_rcel_page,
-                    verbose=True,
-                ):
-                    print("✓ Successfully navigated to Comprobantes en línea")
+        navigator = AFIPNavigator(page)
+        async with page.context.expect_page() as service_page_:
+            service = await navigator.find_service(
+                service_text="COMPROBANTES EN LÍNEA",
+                service_title="rcel",
+                verify_page=lambda p: verify_rcel_page(p, issuer_cuit),  # Pass CUIT to verify function
+                verbose=True,
+            )
+            if not service:
+                print("⨯ Navigation to service failed")
+                return
+            print("✓ Successfully navigated to Comprobantes en línea")
 
-                    service_page = await service_page_.value
-                    operator = AFIPOperator(service_page)
-                    if await operator.execute_operation(navigate_to_invoice_generator, {"verbose": True}, verbose=True):
-                        print("✓ Successfully navigated to invoice generator")
-                    else:
-                        print("⨯ Failed to navigate to invoice generator")
-                else:
-                    print("⨯ Navigation to service failed")
+            # Service operations
+            service_page = await service_page_.value
+            operator = AFIPOperator(service_page)
+
+            # Step 1: Navigate to invoice generation page
+            step_1 = await operator.execute_operation(navigate_to_invoice_generator, {}, verbose=True)
+            if not step_1:
+                print("⨯ Failed to navigate to invoice generator")
+                return
+            print("✓ Successfully navigated to invoice generator")
 
     finally:
         await setup.close()

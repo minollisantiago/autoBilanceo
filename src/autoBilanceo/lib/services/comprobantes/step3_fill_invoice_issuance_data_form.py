@@ -1,40 +1,46 @@
-import os
 import random
 import asyncio
-from dotenv import load_dotenv
 from playwright.async_api import Page
 from ....models.invoice_issuance_data import ConceptType, create_issuance_data
 
-async def fill_invoice_issuance_data_form(page: Page, verbose: bool = False) -> bool:
+async def fill_invoice_issuance_data_form(
+    page: Page,
+    issuance_date: str,
+    concept_type: str,
+    start_date: str,
+    end_date: str,
+    payment_due_date: str,
+    verbose: bool = False
+) -> bool:
     """
     Fill the invoice issuance data form (Step 1 of 4).
 
-    Environment variables used:
-    - ISSUANCE_DATE: Date in dd/mm/yyyy format
-    - CONCEPT_TYPE: Type of concept (PRODUCTOS, SERVICIOS, PRODUCTOS_Y_SERVICIOS)
-    - START_DATE: Optional billing period start date (dd/mm/yyyy)
-    - END_DATE: Optional billing period end date (dd/mm/yyyy)
-    - PAYMENT_DUE_DATE: Optional payment due date (dd/mm/yyyy)
+    Args:
+        page: Playwright page instance
+        issuance_date: Date in dd/mm/yyyy format
+        concept_type: Type of concept (PRODUCTOS, SERVICIOS, PRODUCTOS_Y_SERVICIOS)
+        start_date: Billing period start date (dd/mm/yyyy)
+        end_date: Billing period end date (dd/mm/yyyy)
+        payment_due_date: Payment due date (dd/mm/yyyy)
+        verbose: Whether to print progress messages
 
     Returns:
         bool: True if form was filled successfully
     """
     try:
-        load_dotenv()
-
         if verbose: print("Validating issuance data...")
 
         # Get and validate all form data using our model
         issuance_data = create_issuance_data(
-            issuance_date=os.getenv('ISSUANCE_DATE', ''),
-            concept_type=ConceptType[os.getenv('CONCEPT_TYPE', '')],
-            start_date=os.getenv('START_DATE'),
-            end_date=os.getenv('END_DATE'),
-            payment_due_date=os.getenv('PAYMENT_DUE_DATE')
+            issuance_date=issuance_date,
+            concept_type=ConceptType[concept_type],
+            start_date=start_date,
+            end_date=end_date,
+            payment_due_date=payment_due_date
         )
 
         if not issuance_data:
-            raise ValueError("Failed to create valid issuance data from environment variables")
+            raise ValueError("Failed to create valid issuance data from provided parameters")
 
         if verbose: print("✓ Valid issuance data")
 

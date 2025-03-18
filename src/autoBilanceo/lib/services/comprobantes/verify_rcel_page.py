@@ -1,8 +1,17 @@
 import os
 from playwright.async_api import Page
 
-async def verify_rcel_page(page: Page) -> bool:
-    """Verify RCEL (Comprobantes en línea) page and handle empresa selection"""
+async def verify_rcel_page(page: Page, cuit: str) -> bool:
+    """
+    Verify RCEL (Comprobantes en línea) page and handle empresa selection
+
+    Args:
+        page: Playwright page instance
+        cuit: CUIT number to verify against the page
+
+    Returns:
+        bool: True if verification succeeds
+    """
     try:
         # Handle empresa selection if present
         empresa_selector = 'input.btn_empresa'
@@ -14,17 +23,17 @@ async def verify_rcel_page(page: Page) -> bool:
 
         # Get and verify the user info matches
         user_info = await page.locator('table#encabezado_usuario td').inner_text()
-        env_cuit = str(os.getenv('AFIP_CUIT', '')).replace('-', '')
+        expected_cuit = str(cuit).replace('-', '')
 
         # The user info format is "CUIT - NAME"
         page_cuit = user_info.split(' - ')[0].strip()
 
         # Verify CUIT match and print confirmation
-        cuit_matches = page_cuit == env_cuit
+        cuit_matches = page_cuit == expected_cuit
         if cuit_matches:
-            print(f"✓ RCEL Service - CUIT verification successful: {env_cuit}")
+            print(f"✓ RCEL Service - CUIT verification successful: {expected_cuit}")
         else:
-            print(f"⨯ RCEL Service - CUIT mismatch - Page: {page_cuit}, Expected: {env_cuit}")
+            print(f"⨯ RCEL Service - CUIT mismatch - Page: {page_cuit}, Expected: {expected_cuit}")
 
         return cuit_matches
 

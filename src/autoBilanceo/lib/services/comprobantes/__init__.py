@@ -1,3 +1,4 @@
+from .input_handler import InvoiceInputHandler
 from .verify_rcel_page import verify_rcel_page
 from .step1_nav_to_invoice_generator import navigate_to_invoice_generator
 from .step2_select_invoice_type import select_invoice_type

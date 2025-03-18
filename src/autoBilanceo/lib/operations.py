@@ -30,7 +30,9 @@ class AFIPOperator:
             if verbose: print(f"Executing operation with data: {operation_data}")
 
             await asyncio.sleep(random.uniform(*pre_operation_delay))
-            return await operation_fn(self.page, operation_data)
+
+            # Unpack the dictionary as keyword arguments
+            return await operation_fn(self.page, **operation_data)
 
         except Exception as e:
             print(f"⨯ Operation failed: {str(e)}")
