@@ -341,6 +341,9 @@ The system implements strict validation for various invoice parameters using Pyd
     *   Billing period validation for services
     *   Business rules enforcement:
         *   Dates must be after year 2000
+        *   Issuance date must be within a 21-day window:
+          *   No more than 10 days in the past
+          *   No more than 10 days in the future
         *   End date must be after start date
         *   Payment due date must be after end date
         *   Payment due date cannot be before today
@@ -349,56 +352,65 @@ The system implements strict validation for various invoice parameters using Pyd
 
     ```python
     # 3. Issuance Data Validation Example
-    from datetime import datetime
+    from datetime import datetime, timedelta
 
     class IssuanceDate(BaseModel):
         date: datetime
 
+        @field_validator('date')
         @classmethod
-        def from_string(cls, value: str) -> 'IssuanceDate':
-            try:
-                parsed_date = datetime.strptime(value, "%d/%m/%Y")
-                return cls(date=parsed_date)
-            except ValueError:
-                raise ValueError('Date must be in dd/mm/yyyy format')
+        def validate_date_format(cls, v: datetime) -> datetime:
+            # Check if date is after year 2000
+            if v < datetime(2000, 1, 1):
+                raise ValueError('Date must be after year 2000')
 
-    class BillingPeriod(BaseModel):
-        start_date: IssuanceDate
-        end_date: IssuanceDate
-        payment_due_date: IssuanceDate
+            # Check if date is within 10 days range (past or future)
+            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            ten_days_ago = today - timedelta(days=10)
+            ten_days_ahead = today + timedelta(days=10)
+            
+            if v < ten_days_ago:
+                raise ValueError('Issuance date cannot be more than 10 days in the past')
+            
+            if v > ten_days_ahead:
+                raise ValueError('Issuance date cannot be more than 10 days in the future')
 
-        def validate_date_ranges(self) -> bool:
-            if self.end_date.date < self.start_date.date:
-                raise ValueError('End date cannot be before start date')
-            if self.payment_due_date.date < self.end_date.date:
-                raise ValueError('Payment due date cannot be before end date')
-            return True
+            return v
 
-    # Success case
+    # Success cases
     try:
-        # Valid billing period with correct date sequence
-        valid_period = BillingPeriod(
-            start_date=IssuanceDate.from_string("01/03/2024"),
-            end_date=IssuanceDate.from_string("31/03/2024"),
-            payment_due_date=IssuanceDate.from_string("15/04/2024")
-        )
-        valid_period.validate_date_ranges()
-        print("Success! Valid billing period")
+        # Valid issuance date (today)
+        today_date = IssuanceDate.from_string(datetime.now().strftime("%d/%m/%Y"))
+        print("Success! Valid issuance date (today)")
+
+        # Valid issuance date (5 days ago)
+        five_days_ago = (datetime.now() - timedelta(days=5)).strftime("%d/%m/%Y")
+        past_date = IssuanceDate.from_string(five_days_ago)
+        print("Success! Valid issuance date (5 days ago)")
+
+        # Valid issuance date (5 days ahead)
+        five_days_ahead = (datetime.now() + timedelta(days=5)).strftime("%d/%m/%Y")
+        future_date = IssuanceDate.from_string(five_days_ahead)
+        print("Success! Valid issuance date (5 days ahead)")
     except ValueError as e:
         print(f"Error: {e}")
 
     # Error cases
     try:
-        # Invalid billing period: end date before start date
-        invalid_period = BillingPeriod(
-            start_date=IssuanceDate.from_string("31/03/2024"),
-            end_date=IssuanceDate.from_string("01/03/2024"),
-            payment_due_date=IssuanceDate.from_string("15/04/2024")
-        )
-        invalid_period.validate_date_ranges()
+        # Invalid issuance date (15 days ago)
+        fifteen_days_ago = (datetime.now() - timedelta(days=15)).strftime("%d/%m/%Y")
+        invalid_past = IssuanceDate.from_string(fifteen_days_ago)
         print("This line won't be reached")
     except ValueError as e:
-        print(f"Error: {e}")  # Output: Error: End date cannot be before start date
+        print(f"Error: {e}")  # Output: Error: Issuance date cannot be more than 10 days in the past
+
+    try:
+        # Invalid issuance date (15 days ahead)
+        fifteen_days_ahead = (datetime.now() + timedelta(days=15)).strftime("%d/%m/%Y")
+        invalid_future = IssuanceDate.from_string(fifteen_days_ahead)
+        print("This line won't be reached")
+    except ValueError as e:
+        print(f"Error: {e}")  # Output: Error: Issuance date cannot be more than 10 days in the future
     ```
 
 5.  **Payment Methods Validation**
@@ -664,6 +676,9 @@ The following environment variables are validated against these models:
    - **Dates**:
      - Format: dd/mm/yyyy
      - Must be after year 2000
+     - Issuance date must be within a 21-day window:
+       - No more than 10 days in the past
+       - No more than 10 days in the future
      - Logical sequence for billing period
    - **Concept Types**:
      - PRODUCTOS (1)
