@@ -17,7 +17,7 @@ async def main():
 
     try:
         # Load invoice data
-        invoice_template_path = Path(__file__).parent.parent.parent.parent / "data" / "invoice_template.json"
+        invoice_template_path = Path(__file__).parent.parent.parent.parent / "data" / "invoice_testing_template.json"
         input_handler = InvoiceInputHandler(invoice_template_path)
 
         # Get first invoice data for testing
