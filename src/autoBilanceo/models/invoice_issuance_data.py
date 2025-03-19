@@ -50,7 +50,7 @@ class IssuanceDate(BaseModel):
             parsed_date = datetime.strptime(value, "%d/%m/%Y")
             return cls(date=parsed_date)
         except ValueError:
-            raise ValueError('Date must be in dd/mm/yyyy format')
+            raise ValueError(f'Date: {value} must be in dd/mm/yyyy format')
 
 class BillingPeriod(BaseModel):
     """
