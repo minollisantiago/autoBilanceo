@@ -18,6 +18,7 @@ dependencies = [
 
 [project.scripts]
 test_auth = "autoBilanceo.tests.test_auth:run"
+test_comp_batch = "autoBilanceo.tests.services.comprobantes.test_batch_processing:run"
 test_comp_nav = "autoBilanceo.tests.services.comprobantes.test_step1_nav_to_generator:run"
 test_comp_type = "autoBilanceo.tests.services.comprobantes.test_step2_select_invoice_type:run"
 test_comp_form_1 = "autoBilanceo.tests.services.comprobantes.test_step3_fill_invoice_issuance_form:run"

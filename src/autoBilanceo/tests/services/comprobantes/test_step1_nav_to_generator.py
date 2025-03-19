@@ -13,10 +13,9 @@ async def main():
 
         # Authentication
         auth = AFIPAuthenticator(page)
-        success = await auth.authenticate(cuit=issuer_cuit, verbose=True) #Verbose set to true for testing
+        success = await auth.authenticate(cuit=issuer_cuit, verbose=True)
         if not success:
-            print("⨯ Authentication failed")
-            return
+            raise Exception("⨯ Authentication failed")
         print("✓ Successfully authenticated with AFIP")
 
         # Navigation: mis servicios => comprobantes en linea
@@ -29,8 +28,7 @@ async def main():
                 verbose=True,
             )
             if not service:
-                print("⨯ Navigation to service failed")
-                return
+                raise Exception("⨯ Navigation to service failed")
             print("✓ Successfully navigated to Comprobantes en línea")
 
             # Service operations
@@ -40,8 +38,7 @@ async def main():
             # Step 1: Navigate to invoice generation page
             step_1 = await operator.execute_operation(navigate_to_invoice_generator, {}, verbose=True)
             if not step_1:
-                print("⨯ Failed to navigate to invoice generator")
-                return
+                raise Exception("⨯ Failed to navigate to invoice generator")
             print("✓ Successfully navigated to invoice generator")
 
     finally:

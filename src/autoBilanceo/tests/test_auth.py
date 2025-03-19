@@ -12,10 +12,9 @@ async def main():
 
         auth = AFIPAuthenticator(page)
         #Make sure the cuit is at data/contribuyentes.json
-        success = await auth.authenticate(cuit=issuer_cuit, verbose=True) #Verbose set to true for testing
+        success = await auth.authenticate(cuit=issuer_cuit, verbose=True)
         if not success:
-            print("⨯ Authentication failed")
-            return
+            raise Exception("⨯ Authentication failed")
         print("✓ Successfully authenticated with AFIP")
 
         # Continue with other operations... finding services, etc

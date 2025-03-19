@@ -17,7 +17,9 @@ async def main():
 
     try:
         # Load invoice data
-        invoice_template_path = Path(__file__).parent.parent.parent.parent / "data" / "invoice_testing_template.json"
+        invoice_template_path = (
+            Path(__file__).parent.parent.parent.parent / "data" / "invoice_testing_template.json"
+        )
         input_handler = InvoiceInputHandler(invoice_template_path)
 
         # Get first invoice data for testing
@@ -28,8 +30,7 @@ async def main():
         auth = AFIPAuthenticator(page)
         success = await auth.authenticate(cuit=issuer_cuit, verbose=True)
         if not success:
-            print("⨯ Authentication failed")
-            return
+            raise Exception("⨯ Authentication failed")
         print("✓ Successfully authenticated with AFIP")
 
         # Navigation: mis servicios => comprobantes en linea
@@ -42,8 +43,7 @@ async def main():
                 verbose=True,
             )
             if not service:
-                print("⨯ Navigation to service failed")
-                return
+                raise Exception("⨯ Navigation to service failed")
             print("✓ Successfully navigated to Comprobantes en línea")
 
             # Service operations
@@ -53,8 +53,7 @@ async def main():
             # Step 1: Navigate to invoice generation page
             step_1 = await operator.execute_operation(navigate_to_invoice_generator, {}, verbose=True)
             if not step_1:
-                print("⨯ Failed to navigate to invoice generator")
-                return
+                raise Exception("⨯ Failed to navigate to invoice generator")
             print("✓ Successfully navigated to invoice generator")
 
             # Step 2: Select invoice type
@@ -66,8 +65,7 @@ async def main():
             }
             step_2 = await operator.execute_operation(select_invoice_type, step_2_args, verbose=True)
             if not step_2:
-                print("⨯ Failed to select invoice type")
-                return
+                raise Exception("⨯ Failed to select invoice type")
             print("✓ Successfully selected invoice type")
 
             # Step 3: Fill form 1 - invoice issuance data
@@ -81,8 +79,7 @@ async def main():
             }
             step_3 = await operator.execute_operation(fill_invoice_issuance_data_form, step_3_args, verbose=True)
             if not step_3:
-                print("⨯ Failed to fill the invoice issuance data form")
-                return
+                raise Exception("⨯ Failed to fill the invoice issuance data form")
             print("✓ Successfully filled issuance data form")
 
     finally:
