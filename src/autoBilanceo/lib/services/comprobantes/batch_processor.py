@@ -1,14 +1,12 @@
 import asyncio
 from typing import List, Dict, Any
 from ....lib import BrowserSetup, AFIPAuthenticator, AFIPNavigator, AFIPOperator
-from . import (
-    verify_rcel_page,
-    navigate_to_invoice_generator,
-    select_invoice_type,
-    fill_invoice_issuance_data_form,
-    fill_recipient_form,
-    fill_invoice_content_form
-)
+from .verify_rcel_page import verify_rcel_page
+from .step1_nav_to_invoice_generator import navigate_to_invoice_generator
+from .step2_select_invoice_type import select_invoice_type
+from .step3_fill_invoice_issuance_data_form import fill_invoice_issuance_data_form
+from .step4_fill_recipient_form import fill_recipient_form
+from .step5_fill_invoice_content_form import fill_invoice_content_form
 
 class InvoiceBatchProcessor:
     def __init__(

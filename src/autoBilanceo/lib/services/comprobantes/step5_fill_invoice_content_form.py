@@ -2,10 +2,7 @@ import random
 import asyncio
 from playwright.async_api import Page
 from ....models.invoice_types import IssuerType
-from ....models.invoice_content_services import (
-    IVARate,
-    create_service_invoice_line
-)
+from ....models.invoice_content_services import IVARate, create_service_invoice_line
 
 async def fill_invoice_content_form(
     page: Page,

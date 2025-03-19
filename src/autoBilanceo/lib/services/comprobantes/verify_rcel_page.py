@@ -1,4 +1,3 @@
-import os
 from playwright.async_api import Page
 
 async def verify_rcel_page(page: Page, cuit: str) -> bool:
