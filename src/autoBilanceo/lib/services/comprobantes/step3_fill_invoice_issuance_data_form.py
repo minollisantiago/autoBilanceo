@@ -45,7 +45,7 @@ async def fill_invoice_issuance_data_form(
         if verbose: print("✓ Valid issuance data")
 
         # Fill issuance date
-        issuance_date = issuance_data.issuance_date.format_for_afip()
+        issuance_date = issuance_data.issuance_date.issuance_date.format_for_afip()
         if verbose: print(f"Filling issuance date: {issuance_date}")
 
         date_input_selector = 'input#fc'

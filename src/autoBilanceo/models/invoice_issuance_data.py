@@ -11,9 +11,9 @@ class ConceptType(IntEnum):
     SERVICIOS = 2
     PRODUCTOS_Y_SERVICIOS = 3
 
-class IssuanceDate(BaseModel):
+class AFIPDate(BaseModel):
     """
-    Model for validating dates in AFIP's dd/mm/yyyy format
+    Base model for validating dates in AFIP's dd/mm/yyyy format
     """
     date: datetime
 
@@ -23,18 +23,6 @@ class IssuanceDate(BaseModel):
         # Check if date is after year 2000
         if v < datetime(2000, 1, 1):
             raise ValueError('Date must be after year 2000')
-
-        # Check if date is within 10 days range (past or future)
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        ten_days_ago = today - timedelta(days=10)
-        ten_days_ahead = today + timedelta(days=10)
-
-        if v < ten_days_ago:
-            raise ValueError('Issuance date cannot be more than 10 days in the past')
-
-        if v > ten_days_ahead:
-            raise ValueError('Issuance date cannot be more than 10 days in the future')
-
         return v
 
     def format_for_afip(self) -> str:
@@ -42,23 +30,46 @@ class IssuanceDate(BaseModel):
         return self.date.strftime("%d/%m/%Y")
 
     @classmethod
-    def from_string(cls, value: str) -> 'IssuanceDate':
+    def from_string(cls, value: str) -> 'AFIPDate':
         """
-        Creates an IssuanceDate instance from a string in dd/mm/yyyy format
+        Creates an AFIPDate instance from a string in dd/mm/yyyy format
         """
         try:
             parsed_date = datetime.strptime(value, "%d/%m/%Y")
             return cls(date=parsed_date)
-        except ValueError:
-            raise ValueError(f'Date: {value} must be in dd/mm/yyyy format')
+        except ValueError as e:
+            raise ValueError(f'Date: {value} must be in dd/mm/yyyy format - msg: {e}')
+
+class IssuanceDate(BaseModel):
+    """
+    Model for validating invoice issuance dates with specific rules
+    """
+    issuance_date: AFIPDate
+
+    @model_validator(mode='after')
+    def validate_issuance_window(self) -> 'IssuanceDate':
+        """
+        Validates that issuance date is within the 10-day window
+        """
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        ten_days_ago = today - timedelta(days=10)
+        ten_days_ahead = today + timedelta(days=10)
+
+        if self.issuance_date.date < ten_days_ago:
+            raise ValueError('Issuance date cannot be more than 10 days in the past')
+
+        if self.issuance_date.date > ten_days_ahead:
+            raise ValueError('Issuance date cannot be more than 10 days in the future')
+
+        return self
 
 class BillingPeriod(BaseModel):
     """
     Model representing a billing period with start date, end date, and payment due date
     """
-    start_date: IssuanceDate
-    end_date: IssuanceDate
-    payment_due_date: IssuanceDate
+    start_date: AFIPDate
+    end_date: AFIPDate
+    payment_due_date: AFIPDate
 
     @model_validator(mode='after')
     def validate_date_ranges(self) -> 'BillingPeriod':
@@ -128,15 +139,17 @@ def create_issuance_data(
         payment_due_date: Optional payment due date (dd/mm/yyyy)
     """
     try:
-        issuance_date_obj = IssuanceDate.from_string(issuance_date)
+        issuance_date_obj = IssuanceDate(
+            issuance_date=AFIPDate.from_string(issuance_date)
+        )
 
         # Create billing period if dates are provided
         billing_period = None
         if start_date and end_date and payment_due_date:
             billing_period = BillingPeriod(
-                start_date=IssuanceDate.from_string(start_date),
-                end_date=IssuanceDate.from_string(end_date),
-                payment_due_date=IssuanceDate.from_string(payment_due_date)
+                start_date=AFIPDate.from_string(start_date),
+                end_date=AFIPDate.from_string(end_date),
+                payment_due_date=AFIPDate.from_string(payment_due_date)
             )
 
         return IssuanceData(
