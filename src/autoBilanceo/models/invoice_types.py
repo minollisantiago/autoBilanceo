@@ -10,6 +10,9 @@ class IssuerType(IntEnum):
     MONOTRIBUTO = auto()
 
 class PuntoVenta(BaseModel):
+
+    #TODO: Needs an extra validation step that checks that the input is amongst the select options
+
     """
     Model for validating Punto de Venta number
     Must be up to 5 digits, numbers only

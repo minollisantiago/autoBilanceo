@@ -336,82 +336,112 @@ The system implements strict validation for various invoice parameters using Pyd
 
 4.  **Issuance Data Validation**
 
-    *   Date format validation (dd/mm/yyyy)
+    *   Base date validation (AFIPDate) for all invoice dates:
+        *   Format validation (dd/mm/yyyy)
+        *   Must be after year 2000
+    *   Specific issuance date validation with 10-day window rule
     *   Concept type validation (Products, Services, Both)
     *   Billing period validation for services
-    *   Business rules enforcement:
-        *   Dates must be after year 2000
-        *   Issuance date must be within a 21-day window:
-          *   No more than 10 days in the past
-          *   No more than 10 days in the future
-        *   End date must be after start date
-        *   Payment due date must be after end date
-        *   Payment due date cannot be before today
-        *   Start date cannot be after today
-        *   Billing period required for services
 
     ```python
     # 3. Issuance Data Validation Example
     from datetime import datetime, timedelta
+    from pydantic import BaseModel, field_validator, model_validator
 
-    class IssuanceDate(BaseModel):
+    class AFIPDate(BaseModel):
+        """Base model for all AFIP dates"""
         date: datetime
 
         @field_validator('date')
         @classmethod
         def validate_date_format(cls, v: datetime) -> datetime:
-            # Check if date is after year 2000
             if v < datetime(2000, 1, 1):
                 raise ValueError('Date must be after year 2000')
+            return v
 
-            # Check if date is within 10 days range (past or future)
+        @classmethod
+        def from_string(cls, value: str) -> 'AFIPDate':
+            try:
+                parsed_date = datetime.strptime(value, "%d/%m/%Y")
+                return cls(date=parsed_date)
+            except ValueError as e:
+                raise ValueError(f'Date: {value} must be in dd/mm/yyyy format')
+
+    class IssuanceDate(BaseModel):
+        """Model for invoice issuance date with specific rules"""
+        issuance_date: AFIPDate
+
+        @model_validator(mode='after')
+        def validate_issuance_window(self) -> 'IssuanceDate':
             today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
             ten_days_ago = today - timedelta(days=10)
             ten_days_ahead = today + timedelta(days=10)
-            
-            if v < ten_days_ago:
+
+            if self.issuance_date.date < ten_days_ago:
                 raise ValueError('Issuance date cannot be more than 10 days in the past')
-            
-            if v > ten_days_ahead:
+            if self.issuance_date.date > ten_days_ahead:
                 raise ValueError('Issuance date cannot be more than 10 days in the future')
+            return self
 
-            return v
+    class BillingPeriod(BaseModel):
+        """Model for service billing periods"""
+        start_date: AFIPDate
+        end_date: AFIPDate
+        payment_due_date: AFIPDate
 
-    # Success cases
-    try:
-        # Valid issuance date (today)
-        today_date = IssuanceDate.from_string(datetime.now().strftime("%d/%m/%Y"))
-        print("Success! Valid issuance date (today)")
+        @model_validator(mode='after')
+        def validate_date_ranges(self) -> 'BillingPeriod':
+            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            if self.end_date.date < self.start_date.date:
+                raise ValueError('End date cannot be before start date')
+            if self.payment_due_date.date < self.end_date.date:
+                raise ValueError('Payment due date cannot be before end date')
+            if self.payment_due_date.date < today:
+                raise ValueError('Payment due date cannot be before today')
+            if self.start_date.date > today:
+                raise ValueError('Start date cannot be after today')
+            return self
 
-        # Valid issuance date (5 days ago)
-        five_days_ago = (datetime.now() - timedelta(days=5)).strftime("%d/%m/%Y")
-        past_date = IssuanceDate.from_string(five_days_ago)
-        print("Success! Valid issuance date (5 days ago)")
+    # Usage Examples
+    def example_date_validations():
+        try:
+            # Create an issuance date (5 days from now)
+            future_date = (datetime.now() + timedelta(days=5)).strftime("%d/%m/%Y")
+            issuance = IssuanceDate(
+                issuance_date=AFIPDate.from_string(future_date)
+            )
+            print("Valid issuance date")
 
-        # Valid issuance date (5 days ahead)
-        five_days_ahead = (datetime.now() + timedelta(days=5)).strftime("%d/%m/%Y")
-        future_date = IssuanceDate.from_string(five_days_ahead)
-        print("Success! Valid issuance date (5 days ahead)")
-    except ValueError as e:
-        print(f"Error: {e}")
+            # Create a billing period
+            billing = BillingPeriod(
+                start_date=AFIPDate.from_string("01/03/2024"),
+                end_date=AFIPDate.from_string("31/03/2024"),
+                payment_due_date=AFIPDate.from_string("15/04/2024")
+            )
+            print("Valid billing period")
 
-    # Error cases
-    try:
-        # Invalid issuance date (15 days ago)
-        fifteen_days_ago = (datetime.now() - timedelta(days=15)).strftime("%d/%m/%Y")
-        invalid_past = IssuanceDate.from_string(fifteen_days_ago)
-        print("This line won't be reached")
-    except ValueError as e:
-        print(f"Error: {e}")  # Output: Error: Issuance date cannot be more than 10 days in the past
+        except ValueError as e:
+            print(f"Validation error: {e}")
 
-    try:
-        # Invalid issuance date (15 days ahead)
-        fifteen_days_ahead = (datetime.now() + timedelta(days=15)).strftime("%d/%m/%Y")
-        invalid_future = IssuanceDate.from_string(fifteen_days_ahead)
-        print("This line won't be reached")
-    except ValueError as e:
-        print(f"Error: {e}")  # Output: Error: Issuance date cannot be more than 10 days in the future
+        # Error cases
+        try:
+            # Invalid: 15 days in the future
+            invalid_date = (datetime.now() + timedelta(days=15)).strftime("%d/%m/%Y")
+            IssuanceDate(
+                issuance_date=AFIPDate.from_string(invalid_date)
+            )
+        except ValueError as e:
+            print("Error: Issuance date cannot be more than 10 days in the future")
     ```
+
+Key changes:
+1. Separated base date validation (`AFIPDate`) from specific issuance rules (`IssuanceDate`)
+2. Simplified validation chain using composition instead of inheritance
+3. Clearer separation of concerns:
+   - `AFIPDate`: Basic format and year 2000 validation
+   - `IssuanceDate`: 10-day window rule
+   - `BillingPeriod`: Date sequence validation
 
 5.  **Payment Methods Validation**
 
