@@ -1,5 +1,6 @@
 import asyncio
 from typing import List, Dict, Any
+from collections import defaultdict
 from ....lib import BrowserSetup, AFIPAuthenticator, AFIPNavigator, AFIPOperator
 from .verify_rcel_page import verify_rcel_page
 from .step1_nav_to_invoice_generator import navigate_to_invoice_generator
@@ -21,6 +22,8 @@ class InvoiceBatchProcessor:
 
         Args:
             max_concurrent: Maximum number of concurrent browser instances
+            delay_between_batches: Seconds to wait between batch processing
+            headless: Whether to run browsers in headless mode
             verbose: Whether to print progress messages
         """
         self.max_concurrent = max_concurrent
@@ -28,6 +31,72 @@ class InvoiceBatchProcessor:
         self.headless = headless
         self.verbose = verbose
         self.results: List[Dict[str, Any]] = []
+
+    def _create_issuer_groups(self, invoices: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Group invoices by issuer CUIT.
+
+        Args:
+            invoices: List of invoice data dictionaries
+
+        Returns:
+            Dictionary with CUIT as key and list of invoices as value
+        """
+        groups = defaultdict(list)
+        for invoice in invoices:
+            issuer_cuit = invoice["issuer"]["cuit"]
+            groups[issuer_cuit].append(invoice)
+        return dict(groups)
+
+    def _create_batches(self, invoices: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
+        """
+        Create batches ensuring no batch contains multiple invoices from the same issuer.
+
+        Args:
+            invoices: List of invoice data dictionaries
+
+        Returns:
+            List of batches (each batch is a list of invoices)
+        """
+        # Group invoices by issuer
+        issuer_groups = self._create_issuer_groups(invoices)
+
+        # Initialize batches
+        batches = []
+        current_batch = []
+        used_issuers = set()
+
+        # Keep track of remaining invoices per issuer
+        remaining_invoices = {
+            cuit: list(invoices) 
+            for cuit, invoices in issuer_groups.items()
+        }
+
+        while any(remaining_invoices.values()):  # While there are invoices to process
+            current_batch = []
+            used_issuers = set()
+
+            # Try to add one invoice from each issuer until batch is full
+            for cuit, invoices in list(remaining_invoices.items()):
+                # Skip if we've already used this issuer in this batch or if the batch is full
+                if cuit in used_issuers or len(current_batch) >= self.max_concurrent:
+                    continue
+
+                # If this issuer still has invoices
+                if invoices:
+                    invoice = invoices.pop(0)       #Get first invoice from invoices and remove it
+                    current_batch.append(invoice)   # Add the invoice to the current_batch
+                    used_issuers.add(cuit)          #Mark the CUIT as used on the batch
+
+                    # If no more invoices for this issuer, remove it from remaining
+                    if not invoices:
+                        del remaining_invoices[cuit]
+
+            # Add the batch if it's not empty
+            if current_batch:
+                batches.append(current_batch)
+
+        return batches
 
     async def process_single_invoice(self, invoice_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -150,7 +219,7 @@ class InvoiceBatchProcessor:
 
     async def process_all(self, invoices: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Process all invoices in batches.
+        Process all invoices in batches, ensuring no concurrent processing of same issuer.
 
         Args:
             invoices: List of all invoice data dictionaries
@@ -159,16 +228,23 @@ class InvoiceBatchProcessor:
             List of all processing results
         """
         all_results = []
-        for i in range(0, len(invoices), self.max_concurrent):
-            batch = invoices[i:i + self.max_concurrent]
+        batches = self._create_batches(invoices)
+
+        for i, batch in enumerate(batches):
             if self.verbose:
-                print(f"\nProcessing batch {i//self.max_concurrent + 1} ({len(batch)} invoices)")
+                issuers = {invoice["issuer"]["cuit"] for invoice in batch}
+                print(f"\nProcessing batch {i + 1}/{len(batches)}")
+                print(f"Batch size: {len(batch)} invoice(s)")
+                print(f"Unique issuers in batch: {len(issuers)}. LIST OF CUITS: [{issuers}]")
+                for invoice in batch:
+                    print(f"  - CUIT: {invoice['issuer']['cuit']}, "
+                          f"Type: {invoice['invoice']['type']}")
 
             batch_results = await self.process_batch(batch)
             all_results.extend(batch_results)
 
-            # Add delay between batches to avoid overwhelming the server
-            if i + self.max_concurrent < len(invoices):
+            # Add delay between batches if not the last batch
+            if i < len(batches) - 1:
                 await asyncio.sleep(self.delay_between_batches)
 
         return all_results

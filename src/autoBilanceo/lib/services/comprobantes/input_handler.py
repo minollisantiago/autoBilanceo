@@ -30,25 +30,6 @@ class InvoiceInputHandler:
         with open(path, 'r') as f:
             self.invoice_data = json.load(f)
 
-    def get_invoice_count(self) -> int:
-        """Return the number of invoices to be processed."""
-        return len(self.invoice_data)
-
-    def get_invoice_batch(self, batch_size: int = 5) -> List[List[Dict[str, Any]]]:
-        """
-        Split invoices into batches for concurrent processing.
-
-        Args:
-            batch_size: Number of invoices per batch
-
-        Returns:
-            List of invoice data batches
-        """
-        return [
-            self.invoice_data[i:i + batch_size]
-            for i in range(0, len(self.invoice_data), batch_size)
-        ]
-
     def get_invoice_data(self, invoice_index: int) -> Dict[str, Any]:
         """
         Get raw invoice data for a specific invoice.

@@ -828,3 +828,55 @@ uv run test_comp_form_3
 Each test builds upon the previous steps, allowing for isolated testing of specific functionality. All tests include verbose output for debugging purposes and run in non-headless mode by default during testing.
 
 Note: All test scripts automatically handle browser setup and cleanup, including proper closing of browser instances after test completion.
+
+### Batch Processing
+The system implements intelligent batch processing for multiple invoices, ensuring efficient concurrent processing while maintaining AFIP's session integrity.
+
+#### Batch Processing Rules
+- Maximum concurrent processes are configurable (default: 3)
+- No concurrent processing of invoices from the same issuer (CUIT)
+- Automatic batch size adjustment based on unique issuers
+- Configurable delay between batches to avoid overwhelming AFIP servers
+
+#### Batch Processing Scenarios
+
+1. **Single Issuer, Multiple Invoices**
+   ```
+   Input: 3 invoices from same issuer (CUIT: 20328619548), max_concurrent=3
+   Result: 3 batches of 1 invoice each
+   - Batch 1: [Invoice 1]
+   - Batch 2: [Invoice 2]
+   - Batch 3: [Invoice 3]
+   ```
+
+2. **Multiple Issuers, Even Distribution**
+   ```
+   Input: 4 invoices (2 from each issuer), max_concurrent=3
+   - Issuer A (CUIT: 20328619548): 2 invoices
+   - Issuer B (CUIT: 27336006614): 2 invoices
+   
+   Result: 2 batches
+   - Batch 1: [Invoice A1, Invoice B1]
+   - Batch 2: [Invoice A2, Invoice B2]
+   ```
+
+3. **Multiple Issuers, Mixed Distribution**
+   ```
+   Input: 6 invoices total, max_concurrent=3
+   - Issuer A (CUIT: 20328619548): 3 invoices
+   - Issuer B (CUIT: 27336006614): 2 invoices
+   - Issuer C (CUIT: 30715449133): 1 invoice
+   
+   Result: 3 batches
+   - Batch 1: [Invoice A1, Invoice B1, Invoice C1]
+   - Batch 2: [Invoice A2, Invoice B2]
+   - Batch 3: [Invoice A3]
+   ```
+
+This batching strategy ensures:
+- Optimal resource utilization
+- No CUIT session conflicts
+- Predictable processing patterns
+- Scalable invoice processing
+
+The batch processor provides detailed logging of batch composition when running in verbose mode, helping track the processing of large invoice sets.
