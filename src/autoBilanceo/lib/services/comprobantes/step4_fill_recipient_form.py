@@ -20,7 +20,7 @@ async def fill_recipient_form(
         page: Playwright page instance
         issuer_type: Type of issuer (must be a valid IssuerType enum value)
         recipient_iva_condition: IVA condition of the recipient
-        recipient_cuit: CUIT number of the recipient (11 digits)
+        recipient_cuit: CUIT number of the recipient (11 digits, optional for CONSUMIDOR_FINAL)
         payment_method: Payment method to select
         verbose: Whether to print progress messages
 
@@ -43,11 +43,15 @@ async def fill_recipient_form(
             raise ValueError(f"Invalid IVA condition or issuer type: {str(e)}")
 
         # Validate CUIT
-        try:
-            cuit_info = create_cuit_number(recipient_cuit)
-            if verbose: print(f"✓ Valid CUIT: {cuit_info.number}")
-        except ValueError as e:
-            raise ValueError(f"Invalid CUIT format: {str(e)}")
+        cuit_info = None
+        if iva_condition != IVACondition.CONSUMIDOR_FINAL:
+            try:
+                if not recipient_cuit:
+                    raise ValueError("CUIT is required for non CONSUMIDOR_FINAL recipients")
+                cuit_info = create_cuit_number(recipient_cuit)
+                if verbose: print(f"✓ Valid CUIT: {cuit_info.number}")
+            except ValueError as e:
+                raise ValueError(f"Invalid CUIT format: {str(e)}")
 
         # Validate payment method
         try:
@@ -65,16 +69,17 @@ async def fill_recipient_form(
         await asyncio.sleep(random.uniform(0.5, 1))
         await page.select_option(iva_selector, str(iva_info.condition.value))
 
-        # Fill CUIT
-        if verbose: print("Filling CUIT number...")
+        # Fill CUIT only for non CONSUMIDOR_FINAL recipients
+        if cuit_info:
+            if verbose: print("Filling CUIT number...")
 
-        cuit_selector = 'input#nrodocreceptor'
-        await page.wait_for_selector(cuit_selector, timeout=5000)
-        await asyncio.sleep(random.uniform(0.5, 1))
-        await page.fill(cuit_selector, cuit_info.number)
+            cuit_selector = 'input#nrodocreceptor'
+            await page.wait_for_selector(cuit_selector, timeout=5000)
+            await asyncio.sleep(random.uniform(0.5, 1))
+            await page.fill(cuit_selector, cuit_info.number)
 
-        # Wait for CUIT validation (the page might do some AJAX validation)
-        await asyncio.sleep(random.uniform(1, 1.5))
+            # Wait for CUIT validation (the page might do some AJAX validation)
+            await asyncio.sleep(random.uniform(1, 1.5))
 
         # Select payment method
         if verbose: print(f"Selecting payment method: {payment_method_enum.name}")
