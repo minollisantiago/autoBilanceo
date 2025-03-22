@@ -9,7 +9,7 @@ async def main():
         input_handler = InvoiceInputHandler(template_path)
 
         # Initialize batch processor
-        processor = InvoiceBatchProcessor(max_concurrent=2, delay_between_batches=2, headless=False, verbose=True)
+        processor = InvoiceBatchProcessor(max_concurrent=4, delay_between_batches=1, headless=False, verbose=True)
 
         # Process all invoices
         results = await processor.process_all(input_handler.invoice_data)

@@ -86,6 +86,7 @@ async def main():
             # Step 4: Fill form 2 - invoice recipient data
             step_4_args = {
                 "issuer_type": invoice_data["issuer"]["type"],
+                "invoice_type": invoice_data["invoice"]["type"],
                 "recipient_iva_condition": invoice_data["recipient"]["iva_condition"],
                 "recipient_cuit": invoice_data["recipient"]["cuit"],
                 "payment_method": invoice_data["invoice"]["payment"]["method"],

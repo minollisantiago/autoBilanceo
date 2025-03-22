@@ -1,13 +1,15 @@
 import random
 import asyncio
 from playwright.async_api import Page
-from ....models.invoice_types import IssuerType
+from ....models.cuit import create_cuit_number
+from ....models.invoice_types import IssuerType, InvoiceType
 from ....models.invoice_payment_methods import PaymentMethod, create_payment_method_info
-from ....models.invoice_recipient_data import IVACondition, create_iva_condition_info, create_cuit_number
+from ....models.invoice_recipient_data import IVACondition, create_iva_condition_info
 
 async def fill_recipient_form(
     page: Page,
     issuer_type: str,
+    invoice_type: str,
     recipient_iva_condition: str,
     recipient_cuit: str,
     payment_method: str,
@@ -33,10 +35,15 @@ async def fill_recipient_form(
         # Get and validate IVA condition
         try:
             issuer_type_enum = IssuerType[issuer_type]
+            invoice_type_enum = InvoiceType[invoice_type]
             iva_condition = IVACondition[recipient_iva_condition]
 
             # Validate IVA condition for issuer type
-            iva_info = create_iva_condition_info(condition=iva_condition, issuer_type=issuer_type_enum)
+            iva_info = create_iva_condition_info(
+                condition=iva_condition,
+                issuer_type=issuer_type_enum,
+                invoice_type=invoice_type_enum
+            )
             if verbose: print(f"✓ Valid IVA condition: {iva_condition.name}")
 
         except (KeyError, ValueError) as e:
