@@ -1,12 +1,14 @@
 import random
 import asyncio
+from pathlib import Path
 from typing import Optional
 from playwright._impl._api_structures import ViewportSize
 from playwright.async_api import Page, Browser, async_playwright
 
 class BrowserSetup:
-    def __init__(self, headless: bool = False):
+    def __init__(self, headless: bool = False, downloads_path: Optional[Path] = None):
         self.headless = headless
+        self.downloads_path = downloads_path
         self.browser: Optional[Browser] = None
         self.page: Optional[Page] = None
 
@@ -44,10 +46,11 @@ class BrowserSetup:
                     '--no-sandbox',  # Use carefully, only if needed
                     '--disable-gpu',  # Reduces differences between systems
                     f'--window-size={viewport_sizes[0]["width"]},{viewport_sizes[0]["height"]}'
-                ]
+                ],
+                downloads_path=str(self.downloads_path) if self.downloads_path else None,
             )
 
-            # Create context with randomized properties
+            # Create context with randomized properties and download settings
             context = await self.browser.new_context(
                 viewport=random.choice(viewport_sizes),
                 user_agent=random.choice(user_agents),
@@ -61,6 +64,9 @@ class BrowserSetup:
                 has_touch=False,
                 is_mobile=False,
                 device_scale_factor=1,
+
+                # Add download path configuration if provided
+                accept_downloads=True,
 
                 # Add common HTTP headers
                 extra_http_headers={

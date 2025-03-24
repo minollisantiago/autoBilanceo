@@ -1,13 +1,15 @@
 import asyncio
-from typing import List, Dict, Any
+from pathlib import Path
 from collections import defaultdict
-from ....lib import BrowserSetup, AFIPAuthenticator, AFIPNavigator, AFIPOperator
+from typing import List, Dict, Any, Optional
 from .verify_rcel_page import verify_rcel_page
 from .step1_nav_to_invoice_generator import navigate_to_invoice_generator
 from .step2_select_invoice_type import select_invoice_type
 from .step3_fill_invoice_issuance_data_form import fill_invoice_issuance_data_form
 from .step4_fill_recipient_form import fill_recipient_form
 from .step5_fill_invoice_content_form import fill_invoice_content_form
+from .step6_generate_invoice import confirm_invoice_generation
+from ....lib import BrowserSetup, AFIPAuthenticator, AFIPNavigator, AFIPOperator
 
 class InvoiceBatchProcessor:
     def __init__(
@@ -15,20 +17,30 @@ class InvoiceBatchProcessor:
         max_concurrent: int = 3,
         delay_between_batches: int = 2,
         headless: bool = True,
+        downloads_path: Optional[Path] = None,
         verbose: bool = False
     ):
         """
         Initialize the batch processor.
 
         Args:
-            max_concurrent: Maximum number of concurrent browser instances
-            delay_between_batches: Seconds to wait between batch processing
-            headless: Whether to run browsers in headless mode
-            verbose: Whether to print progress messages
+            max_concurrent (int): Maximum number of concurrent browser instances.
+            delay_between_batches (int): Seconds to wait between batch processing.
+            headless (bool): Whether to run browsers in headless mode.
+            downloads_path (Optional[Path]): Custom path for storing downloaded PDFs.
+                If provided, PDFs will be organized in CUIT-specific folders.
+                If None, files will be stored in Playwright's temporary directory.
+            verbose (bool): Whether to print progress messages.
+
+        Note:
+            When downloads_path is not provided, invoice PDFs are stored in
+            Playwright's temporary directory and are automatically cleaned up
+            when the browser session ends.
         """
         self.max_concurrent = max_concurrent
         self.delay_between_batches = delay_between_batches
         self.headless = headless
+        self.downloads_path = downloads_path
         self.verbose = verbose
         self.results: List[Dict[str, Any]] = []
 
@@ -112,12 +124,12 @@ class InvoiceBatchProcessor:
             "issuer_cuit": invoice_data["issuer"]["cuit"],
             "invoice_type": invoice_data["invoice"]["type"],
             "status": "failed",
-            "error": None
+            "error": None,
         }
 
         try:
             # Setup browser
-            setup = BrowserSetup(headless=self.headless)
+            setup = BrowserSetup(headless=self.headless, downloads_path=self.downloads_path)
             page = await setup.setup()
             if not page:
                 raise Exception("⨯ Browser setup failed")
@@ -194,6 +206,15 @@ class InvoiceBatchProcessor:
                     }
                     if not await operator.execute_operation(fill_invoice_content_form, step5_args, verbose=self.verbose):
                         raise Exception("Invoice content form filling failed")
+
+                    # Step 6: Generate invoice
+                    step6_args = {
+                        "issuer_cuit": invoice_data["issuer"]["cuit"],
+                        "downloads_path": self.downloads_path,
+                        "verbose": self.verbose
+                    }
+                    if not await operator.execute_operation(confirm_invoice_generation, step6_args, verbose=self.verbose):
+                        raise Exception(f"Invoice generation failed")
 
                     result["status"] = "success"
 

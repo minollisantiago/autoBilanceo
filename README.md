@@ -89,6 +89,23 @@ Located in `lib/services/comprobantes/`:
       - Handles special cases (NO_GRAVADO, EXENTO)
     - Implements proper form state management
 
+  - `step6_generate_invoice.py`: Final invoice generation
+    - Handles confirmation dialog automation
+    - Manages AJAX-based invoice generation process
+    - Implements response validation:
+      - Success case: 
+        - Captures generated invoice ID
+        - Downloads invoice PDF
+        - Organizes PDFs by CUIT in custom directory (optional)
+      - Error cases:
+        - PDF generation errors
+        - Authorization code (CAE) errors
+        - Additional data errors
+    - Flexible PDF storage options:
+      - Custom directory with CUIT-based organization
+      - Temporary storage with automatic cleanup
+    - Provides detailed operation status and error reporting
+
 #### 3. Models
 Located in `models/`:
 - **invoice_types.py**: Core invoice type definitions
