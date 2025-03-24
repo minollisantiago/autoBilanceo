@@ -4,15 +4,27 @@ from ....lib.services.comprobantes import InvoiceInputHandler, InvoiceBatchProce
 
 async def main():
     try:
-        # Load invoice data
+        # Data paths
         template_path = Path(__file__).parent.parent.parent.parent / "data" / "invoice_testing_template.json"
+        downloads_path = Path(__file__).parent.parent.parent.parent / "data" / "comprobantes"
+
+        # Load invoice data
         input_handler = InvoiceInputHandler(template_path)
 
         # Initialize batch processor
-        processor = InvoiceBatchProcessor(max_concurrent=4, delay_between_batches=1, headless=False, verbose=True)
+        processor = InvoiceBatchProcessor(
+            max_concurrent=4,
+            delay_between_batches=1,
+            headless=False,
+            downloads_path=downloads_path,
+            verbose=True
+        )
 
         # Process all invoices
-        results = await processor.process_all(input_handler.invoice_data)
+        # Set generate_invoices to False to avoid actually generating the invoices
+        results = await processor.process_all(
+            input_handler.invoice_data, generate_invoices=False
+        )
 
         # Print results
         print("\nProcessing Results:")

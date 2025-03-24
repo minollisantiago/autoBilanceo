@@ -110,12 +110,18 @@ class InvoiceBatchProcessor:
 
         return batches
 
-    async def process_single_invoice(self, invoice_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process_single_invoice(
+        self,
+        invoice_data: Dict[str, Any],
+        generate_invoice: bool=True
+    ) -> Dict[str, Any]:
         """
         Process a single invoice through the complete workflow.
 
         Args:
             invoice_data: Dictionary containing all invoice data
+            generate_invoice (bool): If True, confirm invoice generation 
+            and download pdf (for testing set to False)
 
         Returns:
             Dictionary containing the processing result
@@ -207,14 +213,15 @@ class InvoiceBatchProcessor:
                     if not await operator.execute_operation(fill_invoice_content_form, step5_args, verbose=self.verbose):
                         raise Exception("Invoice content form filling failed")
 
-                    # Step 6: Generate invoice
-                    step6_args = {
-                        "issuer_cuit": invoice_data["issuer"]["cuit"],
-                        "downloads_path": self.downloads_path,
-                        "verbose": self.verbose
-                    }
-                    if not await operator.execute_operation(confirm_invoice_generation, step6_args, verbose=self.verbose):
-                        raise Exception(f"Invoice generation failed")
+                    # Step 6: Generate invoice: only in case of explicit confirmation
+                    if generate_invoice:
+                        step6_args = {
+                            "issuer_cuit": invoice_data["issuer"]["cuit"],
+                            "downloads_path": self.downloads_path,
+                            "verbose": self.verbose
+                        }
+                        if not await operator.execute_operation(confirm_invoice_generation, step6_args, verbose=self.verbose):
+                            raise Exception(f"Invoice generation failed")
 
                     result["status"] = "success"
 
@@ -226,7 +233,9 @@ class InvoiceBatchProcessor:
 
         return result
 
-    async def process_batch(self, batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def process_batch(
+        self, batch: List[Dict[str, Any]], generate_invoices: bool=True
+    ) -> List[Dict[str, Any]]:
         """
         Process a batch of invoices concurrently.
 
@@ -236,10 +245,16 @@ class InvoiceBatchProcessor:
         Returns:
             List of processing results
         """
-        tasks = [self.process_single_invoice(invoice) for invoice in batch]
+        tasks = [
+            self.process_single_invoice(
+                invoice, generate_invoice=generate_invoices
+            ) for invoice in batch
+        ]
         return await asyncio.gather(*tasks)
 
-    async def process_all(self, invoices: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def process_all(
+        self, invoices: List[Dict[str, Any]], generate_invoices: bool=True
+    ) -> List[Dict[str, Any]]:
         """
         Process all invoices in batches, ensuring no concurrent processing of same issuer.
 
@@ -262,7 +277,7 @@ class InvoiceBatchProcessor:
                     print(f"  - CUIT: {invoice['issuer']['cuit']}, "
                           f"Type: {invoice['invoice']['type']}")
 
-            batch_results = await self.process_batch(batch)
+            batch_results = await self.process_batch(batch, generate_invoices)
             all_results.extend(batch_results)
 
             # Add delay between batches if not the last batch
