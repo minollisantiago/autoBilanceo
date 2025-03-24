@@ -1,23 +1,27 @@
 import asyncio
-from pathlib import Path
 from ....lib.services.comprobantes import InvoiceInputHandler, InvoiceBatchProcessor
+from ....config import (
+    TEMPLATE_PATH,
+    DOWNLOADS_PATH,
+    TEST_HEADLESS,
+    TEST_VERBOSE,
+    TEST_MAX_CONCURRENT,
+    TEST_DELAY_BETWEEN_BATCHES
+)
 
 async def main():
     try:
-        # Data paths
-        template_path = Path(__file__).parent.parent.parent.parent / "data" / "invoice_testing_template.json"
-        downloads_path = Path(__file__).parent.parent.parent.parent / "data" / "comprobantes"
 
         # Load invoice data
-        input_handler = InvoiceInputHandler(template_path)
+        input_handler = InvoiceInputHandler(TEMPLATE_PATH)
 
         # Initialize batch processor
         processor = InvoiceBatchProcessor(
-            max_concurrent=4,
-            delay_between_batches=1,
-            headless=False,
-            downloads_path=downloads_path,
-            verbose=True
+            max_concurrent=TEST_MAX_CONCURRENT,
+            delay_between_batches=TEST_DELAY_BETWEEN_BATCHES,
+            headless=TEST_HEADLESS,
+            downloads_path=DOWNLOADS_PATH,
+            verbose=TEST_VERBOSE
         )
 
         # Process all invoices

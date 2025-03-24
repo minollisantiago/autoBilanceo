@@ -13,3 +13,13 @@ wheels/
 # CSV/Json files
 src/autoBilanceo/data/*.csv
 src/autoBilanceo/data/*.json
+src/autoBilanceo/data/comprobantes/*
+
+# Playwright cache
+.playwright/
+
+# ChromeDriver cache
+.chromedriver/
+
+# FirefoxDriver cache
+.geckodriver/

@@ -16,7 +16,7 @@ async def main():
         # Process single invoice (first one)
         # Set generate_invoice to False to avoid actually generating the invoice
         result = await processor.process_single_invoice(
-            input_handler.get_invoice_data(0), generate_invoice=False
+            input_handler.get_invoice_data(0), generate_invoice=True
         )
 
         # Print results
