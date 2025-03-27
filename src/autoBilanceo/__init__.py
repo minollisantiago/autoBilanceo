@@ -1,5 +1,5 @@
 import asyncio
-import argparse
+from .lib import RichArgumentParser
 from .lib.services.comprobantes import InvoiceInputHandler, InvoiceBatchProcessor
 from .config import (
     TEMPLATE_PATH,
@@ -11,33 +11,41 @@ from .config import (
 )
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='AutoBilanceo invoice processing')
+    parser = RichArgumentParser(description='''[bold cyan]
+ █████╗ ██╗   ██╗████████╗ ██████╗ ██████╗ ██╗██╗      █████╗ ███╗   ██╗ ██████╗███████╗ ██████╗ 
+██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗██║██║     ██╔══██╗████╗  ██║██╔════╝██╔════╝██╔═══██╗
+███████║██║   ██║   ██║   ██║   ██║██████╔╝██║██║     ███████║██╔██╗ ██║██║     █████╗  ██║   ██║
+██╔══██║██║   ██║   ██║   ██║   ██║██╔══██╗██║██║     ██╔══██║██║╚██╗██║██║     ██╔══╝  ██║   ██║
+██║  ██║╚██████╔╝   ██║   ╚██████╔╝██████╔╝██║███████╗██║  ██║██║ ╚████║╚██████╗███████╗╚██████╔╝
+╚═╝  ╚═╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═════╝ ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝ ╚═════╝[/bold cyan]
+
+[bold blue]🚀 Invoice Processing CLI[/bold blue]''')
 
     parser.add_argument(
         '--no-headless',
         action='store_false',
         dest='headless',
         default=HEADLESS,
-        help=f'Run browser in visible mode (default: {HEADLESS})',
+        help='🖥️  Run browser in visible mode',
     )
     parser.add_argument(
         '--quiet',
         action='store_false',
         dest='verbose',
         default=VERBOSE,
-        help=f'Reduce output verbosity (default: {VERBOSE})'
+        help='🔇 Reduce output verbosity'
     )
     parser.add_argument(
         '--max-concurrent',
         type=int,
         default=MAX_CONCURRENT,
-        help=f'Maximum concurrent processes (default: {MAX_CONCURRENT})'
+        help='⚡ Maximum concurrent processes'
     )
     parser.add_argument(
         '--delay',
         type=float,
         default=DELAY_BETWEEN_BATCHES,
-        help=f'Delay between batches in seconds (default: {DELAY_BETWEEN_BATCHES})'
+        help='⏱️  Delay between batches in seconds'
     )
 
     return parser.parse_args()
