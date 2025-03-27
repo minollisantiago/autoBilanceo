@@ -1,12 +1,12 @@
 import asyncio
-from .lib.services.comprobantes import InvoiceInputHandler, InvoiceBatchProcessor
-from .config import (
+from ....lib.services.comprobantes import InvoiceInputHandler, InvoiceBatchProcessor
+from ....config import (
     TEMPLATE_PATH,
     DOWNLOADS_PATH,
-    HEADLESS,
-    VERBOSE,
-    MAX_CONCURRENT,
-    DELAY_BETWEEN_BATCHES,
+    TEST_HEADLESS,
+    TEST_VERBOSE,
+    TEST_MAX_CONCURRENT,
+    TEST_DELAY_BETWEEN_BATCHES
 )
 
 async def main():
@@ -17,11 +17,11 @@ async def main():
 
         # Initialize batch processor
         processor = InvoiceBatchProcessor(
-            max_concurrent=MAX_CONCURRENT,
-            delay_between_batches=DELAY_BETWEEN_BATCHES,
-            headless=HEADLESS,
+            max_concurrent=TEST_MAX_CONCURRENT,
+            delay_between_batches=TEST_DELAY_BETWEEN_BATCHES,
+            headless=TEST_HEADLESS,
             downloads_path=DOWNLOADS_PATH,
-            verbose=VERBOSE
+            verbose=TEST_VERBOSE
         )
 
         # Process all invoices

@@ -11,7 +11,7 @@ DOWNLOADS_PATH = DATA_DIR / "comprobantes"
 
 # Prod Configuration
 HEADLESS = True
-VERBOSE = False
+VERBOSE = True
 MAX_CONCURRENT = 4
 DELAY_BETWEEN_BATCHES = 2
 
