@@ -14,7 +14,7 @@ from ....lib import BrowserSetup, AFIPAuthenticator, AFIPNavigator, AFIPOperator
 class InvoiceBatchProcessor:
     def __init__(
         self,
-        max_concurrent: int = 3,
+        max_concurrent: int = 4,
         delay_between_batches: int = 2,
         headless: bool = True,
         downloads_path: Optional[Path] = None,

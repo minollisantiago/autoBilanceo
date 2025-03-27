@@ -1,4 +1,5 @@
 import asyncio
+import argparse
 from .lib.services.comprobantes import InvoiceInputHandler, InvoiceBatchProcessor
 from .config import (
     TEMPLATE_PATH,
@@ -9,19 +10,53 @@ from .config import (
     DELAY_BETWEEN_BATCHES,
 )
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='AutoBilanceo invoice processing')
+
+    parser.add_argument(
+        '--no-headless',
+        action='store_false',
+        dest='headless',
+        default=HEADLESS,
+        help=f'Run browser in visible mode (default: {HEADLESS})',
+    )
+    parser.add_argument(
+        '--quiet',
+        action='store_false',
+        dest='verbose',
+        default=VERBOSE,
+        help=f'Reduce output verbosity (default: {VERBOSE})'
+    )
+    parser.add_argument(
+        '--max-concurrent',
+        type=int,
+        default=MAX_CONCURRENT,
+        help=f'Maximum concurrent processes (default: {MAX_CONCURRENT})'
+    )
+    parser.add_argument(
+        '--delay',
+        type=float,
+        default=DELAY_BETWEEN_BATCHES,
+        help=f'Delay between batches in seconds (default: {DELAY_BETWEEN_BATCHES})'
+    )
+
+    return parser.parse_args()
+
 async def main():
     try:
+        # Parse command line arguments
+        args = parse_args()
 
         # Load invoice data
         input_handler = InvoiceInputHandler(TEMPLATE_PATH)
 
-        # Initialize batch processor
+        # Initialize batch processor with CLI args or defaults
         processor = InvoiceBatchProcessor(
-            max_concurrent=MAX_CONCURRENT,
-            delay_between_batches=DELAY_BETWEEN_BATCHES,
-            headless=HEADLESS,
+            max_concurrent=args.max_concurrent,
+            delay_between_batches=args.delay,
+            headless=args.headless,
             downloads_path=DOWNLOADS_PATH,
-            verbose=VERBOSE
+            verbose=args.verbose
         )
 
         # Process all invoices
