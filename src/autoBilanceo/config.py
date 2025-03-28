@@ -1,4 +1,30 @@
+import warnings
 from pathlib import Path
+
+# Warning Configuration
+# -----------------------------------------------------------------------------
+# Known Issue: During test execution, particularly on Windows systems, asyncio 
+# subprocess handling generates ResourceWarnings and exceptions related to pipe 
+# cleanup. These warnings appear as:
+#   1. "Exception ignored in: <function BaseSubprocessTransport.__del__ at 0x...>"
+#   2. "ValueError: I/O operation on closed pipe"
+#   3. "ResourceWarning: unclosed transport"
+#
+# Root Cause:
+# - These warnings occur during asyncio's subprocess handling and pipe cleanup
+# - They happen when Python tries to clean up pipes that are already functionally closed
+# - Common in Windows systems due to how Windows handles process cleanup
+#
+# Impact:
+# - These warnings are harmless and don't affect application functionality
+# - The invoice generation process completes successfully
+# - Resources are properly cleaned up by Python's garbage collector
+#
+# Solution:
+# We suppress these specific warnings to reduce noise in test output while
+# maintaining visibility of other important warnings and errors
+warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed transport")
+warnings.filterwarnings("ignore", message="Exception ignored.*BaseSubprocessTransport.*")
 
 # Base paths
 BASE_DIR = Path(__file__).parent

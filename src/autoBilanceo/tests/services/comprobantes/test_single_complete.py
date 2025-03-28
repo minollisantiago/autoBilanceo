@@ -1,6 +1,7 @@
 import asyncio
 from ....lib.services.comprobantes import InvoiceInputHandler, InvoiceBatchProcessor
 from ....config import TEMPLATE_PATH, DOWNLOADS_PATH, TEST_HEADLESS, TEST_VERBOSE
+# Warning filters are automatically applied when importing config
 
 async def main():
     try:

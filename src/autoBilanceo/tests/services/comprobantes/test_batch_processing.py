@@ -8,6 +8,7 @@ from ....config import (
     TEST_MAX_CONCURRENT,
     TEST_DELAY_BETWEEN_BATCHES
 )
+# Warning filters are automatically applied when importing config
 
 async def main():
     try:

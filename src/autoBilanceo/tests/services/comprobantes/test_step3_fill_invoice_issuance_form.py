@@ -8,9 +8,11 @@ from ....lib.services.comprobantes import (
     navigate_to_invoice_generator,
     fill_invoice_issuance_data_form,
 )
+from ....config import TEST_HEADLESS, TEST_VERBOSE
+# Warning filters are automatically applied when importing config
 
 async def main():
-    setup = BrowserSetup(headless=False)  # Set to false for testing
+    setup = BrowserSetup(headless=TEST_HEADLESS)  # Set to false for testing
     page = await setup.setup()
     if not page:
         raise Exception("⨯ Browser setup failed")
@@ -28,7 +30,7 @@ async def main():
 
         # Authentication
         auth = AFIPAuthenticator(page)
-        success = await auth.authenticate(cuit=issuer_cuit, verbose=True)
+        success = await auth.authenticate(cuit=issuer_cuit, verbose=TEST_VERBOSE)
         if not success:
             raise Exception("⨯ Authentication failed")
         print("✓ Successfully authenticated with AFIP")
@@ -40,7 +42,7 @@ async def main():
                 service_text="COMPROBANTES EN LÍNEA",
                 service_title="rcel",
                 verify_page=lambda p: verify_rcel_page(p, issuer_cuit),  # Pass CUIT to verify function
-                verbose=True,
+                verbose=TEST_VERBOSE,
             )
             if not service:
                 raise Exception("⨯ Navigation to service failed")
@@ -51,7 +53,7 @@ async def main():
             operator = AFIPOperator(service_page)
 
             # Step 1: Navigate to invoice generation page
-            step_1 = await operator.execute_operation(navigate_to_invoice_generator, {}, verbose=True)
+            step_1 = await operator.execute_operation(navigate_to_invoice_generator, {}, verbose=TEST_VERBOSE)
             if not step_1:
                 raise Exception("⨯ Failed to navigate to invoice generator")
             print("✓ Successfully navigated to invoice generator")
@@ -61,9 +63,9 @@ async def main():
                 "punto_venta": invoice_data["invoice"]["punto_venta"],
                 "issuer_type": invoice_data["issuer"]["type"],
                 "invoice_type": invoice_data["invoice"]["type"],
-                "verbose": True
+                "verbose": TEST_VERBOSE
             }
-            step_2 = await operator.execute_operation(select_invoice_type, step_2_args, verbose=True)
+            step_2 = await operator.execute_operation(select_invoice_type, step_2_args, verbose=TEST_VERBOSE)
             if not step_2:
                 raise Exception("⨯ Failed to select invoice type")
             print("✓ Successfully selected invoice type")
@@ -77,7 +79,7 @@ async def main():
                 "payment_due_date": invoice_data["invoice"]["service_period"]["payment_due_date"],
                 "verbose": True
             }
-            step_3 = await operator.execute_operation(fill_invoice_issuance_data_form, step_3_args, verbose=True)
+            step_3 = await operator.execute_operation(fill_invoice_issuance_data_form, step_3_args, verbose=TEST_VERBOSE)
             if not step_3:
                 raise Exception("⨯ Failed to fill the invoice issuance data form")
             print("✓ Successfully filled issuance data form")
