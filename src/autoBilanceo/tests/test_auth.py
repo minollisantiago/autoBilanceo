@@ -1,8 +1,10 @@
 import asyncio
 from ..lib import AFIPAuthenticator, BrowserSetup
+from ..config import TEST_HEADLESS, TEST_VERBOSE
+# Warning filters are automatically applied when importing config
 
 async def main():
-    setup = BrowserSetup(headless=False)  # Set to false for testing
+    setup = BrowserSetup(headless=TEST_HEADLESS)  # Using config value
     page = await setup.setup()
     if not page:
         raise Exception("⨯ Browser setup failed")
@@ -12,7 +14,7 @@ async def main():
 
         auth = AFIPAuthenticator(page)
         #Make sure the cuit is at data/contribuyentes.json
-        success = await auth.authenticate(cuit=issuer_cuit, verbose=True)
+        success = await auth.authenticate(cuit=issuer_cuit, verbose=TEST_VERBOSE)
         if not success:
             raise Exception("⨯ Authentication failed")
         print("✓ Successfully authenticated with AFIP")
