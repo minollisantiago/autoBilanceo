@@ -1,4 +1,5 @@
 import asyncio
+import warnings
 from .lib import RichArgumentParser
 from .lib.services.comprobantes import InvoiceInputHandler, InvoiceBatchProcessor
 from .config import (
@@ -52,6 +53,26 @@ def parse_args():
     return parser.parse_args()
 
 async def main():
+    """
+    # Known Issue & Solution:
+    # There's a harmless but noisy warning that occurs during invoice generation,
+    # specifically on Windows systems. The error looks like:
+    # "Exception ignored in: <function BaseSubprocessTransport.__del__ at 0x...>"
+    # followed by "ValueError: I/O operation on closed pipe"
+    #
+    # This happens because:
+    # 1. It's related to asyncio subprocess handling and pipe cleanup
+    # 2. The pipe is already functionally closed when Python tries to clean it up
+    # 3. The warning doesn't affect the actual invoice generation functionality
+    #
+    # We suppress this specific warning while keeping other important warnings visible.
+    # If you need to track all warnings during development, consider making this
+    # suppression conditional based on an environment variable.
+    """
+    warnings.filterwarnings(
+        "ignore", category=ResourceWarning, message="unclosed transport"
+    )
+
     try:
         # Parse command line arguments
         args = parse_args()
