@@ -11,11 +11,13 @@ class BrowserSetup:
         self.downloads_path = downloads_path
         self.browser: Optional[Browser] = None
         self.page: Optional[Page] = None
+        self.playwright = None
+        self.context = None
 
     async def setup(self) -> Optional[Page]:
         """Initialize browser with anti-detection measures"""
         try:
-            playwright = await async_playwright().start()
+            self.playwright = await async_playwright().start()
 
             # List of common user agents to rotate randomly
             user_agents = [
@@ -34,7 +36,7 @@ class BrowserSetup:
             ]
 
             # Launch browser with enhanced anti-detection arguments
-            self.browser = await playwright.chromium.launch(
+            self.browser = await self.playwright.chromium.launch(
                 headless=self.headless,
                 args=[
                     '--disable-blink-features=AutomationControlled',  # Hides automation flags
@@ -51,7 +53,7 @@ class BrowserSetup:
             )
 
             # Create context with randomized properties and download settings
-            context = await self.browser.new_context(
+            self.context = await self.browser.new_context(
                 viewport=random.choice(viewport_sizes),
                 user_agent=random.choice(user_agents),
                 locale='es-AR',  # Set Argentine Spanish locale
@@ -77,7 +79,7 @@ class BrowserSetup:
             )
 
             # Add custom JavaScript to modify browser fingerprint
-            await context.add_init_script("""
+            await self.context.add_init_script("""
                 Object.defineProperty(navigator, 'webdriver', {
                     get: () => undefined
                 });
@@ -94,7 +96,7 @@ class BrowserSetup:
                 });
             """)
 
-            self.page = await context.new_page()
+            self.page = await self.context.new_page()
 
             # Additional page-level configurations
             await self.page.set_extra_http_headers({
@@ -108,13 +110,42 @@ class BrowserSetup:
 
         except Exception as e:
             print(f"Browser setup failed: {str(e)}")
+            await self.close(verbose=True)
             return None
 
     async def close(self, verbose: bool = False):
-        """Clean up resources"""
-        if self.browser:
-            if verbose: print(f"Cleaning up resources...")
-            await self.browser.close()
+        """Clean up resources in the correct order"""
+        try:
+            if verbose: print("Cleaning up resources...")
+
+            # Close page first if it exists
+            if self.page:
+                await self.page.close()
+                self.page = None
+
+            # Close context next if it exists
+            if self.context:
+                await self.context.close()
+                self.context = None
+
+            # Close browser
+            if self.browser:
+                await self.browser.close()
+                self.browser = None
+
+            # Stop playwright
+            if self.playwright:
+                await self.playwright.stop()
+                self.playwright = None
+
+        except Exception as e:
+            if verbose: print(f"Cleanup error: {str(e)}")
+        finally:
+            # Force cleanup any remaining resources
+            self.page = None
+            self.context = None
+            self.browser = None
+            self.playwright = None
 
     @classmethod
     async def human_type(cls, page: Page, selector: str, text: str):

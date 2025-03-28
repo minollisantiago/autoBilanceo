@@ -1,11 +1,8 @@
 import asyncio
-import warnings
 from ....lib import AFIPAuthenticator, BrowserSetup, AFIPNavigator, AFIPOperator
 from ....lib.services.comprobantes import verify_rcel_page, navigate_to_invoice_generator
 from ....config import TEST_HEADLESS, TEST_VERBOSE
 # Warning filters are automatically applied when importing config
-warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed transport")
-warnings.filterwarnings("ignore", message="Exception ignored.*BaseSubprocessTransport.*")
 
 async def main():
     setup = BrowserSetup(headless=TEST_HEADLESS)  # Set to false for testing
