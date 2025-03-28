@@ -23,8 +23,8 @@ from pathlib import Path
 # Solution:
 # We suppress these specific warnings to reduce noise in test output while
 # maintaining visibility of other important warnings and errors
-warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed transport")
-warnings.filterwarnings("ignore", message="Exception ignored.*BaseSubprocessTransport.*")
+#warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed transport")
+#warnings.filterwarnings("ignore", message="Exception ignored.*BaseSubprocessTransport.*")
 
 # Base paths
 BASE_DIR = Path(__file__).parent
