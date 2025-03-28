@@ -8,7 +8,6 @@ from ....lib.services.comprobantes import (
     navigate_to_invoice_generator,
 )
 from ....config import TEST_HEADLESS, TEST_VERBOSE
-# Warning filters are automatically applied when importing config
 
 async def main():
     setup = BrowserSetup(headless=TEST_HEADLESS)  # Set to false for testing

@@ -11,7 +11,6 @@ from ....lib.services.comprobantes import (
     fill_invoice_content_form,
 )
 from ....config import TEST_HEADLESS, TEST_VERBOSE
-# Warning filters are automatically applied when importing config
 
 async def main():
     setup = BrowserSetup(headless=TEST_HEADLESS)  # Set to false for testing
