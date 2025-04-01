@@ -2,7 +2,7 @@ import asyncio
 from .lib import RichArgumentParser
 from .lib.services.comprobantes import InvoiceInputHandler, InvoiceBatchProcessor
 from .config import (
-    TEMPLATE_PATH,
+    INVOICE_DATA_PATH,
     DOWNLOADS_PATH,
     HEADLESS,
     VERBOSE,
@@ -58,7 +58,7 @@ async def main():
         args = parse_args()
 
         # Load invoice data
-        input_handler = InvoiceInputHandler(TEMPLATE_PATH)
+        input_handler = InvoiceInputHandler(INVOICE_DATA_PATH)
 
         # Initialize batch processor with CLI args or defaults
         processor = InvoiceBatchProcessor(
