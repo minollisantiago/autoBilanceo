@@ -18,6 +18,7 @@ dependencies = [
 
 [project.scripts]
 start = "autoBilanceo:run"
+add_contribuyente = "autoBilanceo.lib.contribuyentes:main"
 
 test_auth = "autoBilanceo.tests.test_auth:run"
 test_comp_batch = "autoBilanceo.tests.services.comprobantes.test_batch_processing:run"

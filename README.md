@@ -846,6 +846,46 @@ Each test builds upon the previous steps, allowing for isolated testing of speci
 
 Note: All test scripts automatically handle browser setup and cleanup, including proper closing of browser instances after test completion.
 
+### Contribuyente Management
+The system provides a CLI command to manage contribuyentes (taxpayers) in the system:
+
+```bash
+uv run add_contribuyente --cuit <cuit> --password <password>
+```
+
+This command:
+- Validates the CUIT format using the existing Pydantic model
+- Ensures the CUIT is exactly 11 digits
+- Automatically cleans non-numeric characters from the CUIT
+- Stores the contribuyente credentials in `src/autoBilanceo/data/contribuyentes.json`
+
+#### Available Options
+| Option | Description | Required |
+|--------|-------------|----------|
+| `--cuit` | 🔢 CUIT number of the contribuyente (11 digits) | Yes |
+| `--password` | 🔐 Password for the contribuyente | Yes |
+
+Example usage:
+```bash
+# Add a new contribuyente
+uv run add_contribuyente --cuit 20328619548 --password "myPassword123"
+
+# Success output
+✓ Successfully added contribuyente with CUIT: 20328619548
+
+# Error output (invalid CUIT)
+⨯ Failed to add contribuyente
+Error: Invalid CUIT format - CUIT must contain only numbers
+```
+
+The contribuyentes.json file maintains a simple key-value structure:
+```json
+{
+  "20328619548": "myPassword123",
+  "27336006614": "anotherPassword"
+}
+```
+
 ### Batch Processing
 The system implements intelligent batch processing for multiple invoices, ensuring efficient concurrent processing while maintaining AFIP's session integrity.
 
