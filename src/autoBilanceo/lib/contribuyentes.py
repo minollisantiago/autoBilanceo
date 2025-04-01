@@ -2,9 +2,10 @@ import json
 import argparse
 from typing import Dict
 from pathlib import Path
+from rich.table import Table
+from rich.console import Console
 
 from ..models.cuit import create_cuit_number
-from .argparser import RichArgumentParser
 
 def load_contribuyentes(file_path: Path) -> Dict[str, str]:
     """Load contribuyentes from JSON file"""
@@ -40,9 +41,58 @@ def add_contribuyente(cuit: str, password: str, file_path: Path) -> bool:
         print(f"Error: Failed to add contribuyente - {e}")
         return False
 
+def format_help():
+    """Format help message with a table"""
+    console = Console()
+
+    # Print header
+    console.print("[bold blue]🔑 AFIP Contribuyente Management Tool[/bold blue]")
+
+    # Create options table
+    options_table = Table(
+        show_header=True,
+        header_style="bold magenta",
+        expand=False
+    )
+    options_table.add_column("Option", style="cyan")
+    options_table.add_column("Description", style="green")
+    options_table.add_column("Required", style="yellow")
+
+    # Add options
+    options_table.add_row(
+        "--cuit",
+        "🔢 CUIT number of the contribuyente (11 digits)",
+        "Yes"
+    )
+    options_table.add_row(
+        "--password",
+        "🔐 Password (clave fiscal) for the contribuyente",
+        "Yes"
+    )
+
+    console.print(options_table)
+
+    # Print example usage
+    console.print("\n[bold]Example Usage:[/bold]")
+    console.print(
+        """
+[dim]# Add a new contribuyente[/dim]
+[bold green]uv run add_contribuyente --cuit 20328619548 --password "myPassword123"[/bold green]
+
+[dim]# Show this help message[/dim]
+[bold green]uv run add_contribuyente --help[/bold green]
+        """
+    )
+    return ''
+
 def main():
-    parser = RichArgumentParser(description='''[bold blue]🔑 AFIP Contribuyente Management Tool[/bold blue]
-[bold green]🔗 Project repo: https://github.com/minollisantiago/autoBilanceo[/bold green]''')
+    parser = argparse.ArgumentParser(
+        description='Add a new contribuyente to the system',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    # Override the help message
+    parser.print_help = format_help
 
     parser.add_argument(
         '--cuit',
