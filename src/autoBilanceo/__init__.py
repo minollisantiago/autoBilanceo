@@ -11,6 +11,9 @@ from .config import (
 )
 # Warning filters are automatically applied when importing config
 
+#TODO: Add retring loops, for when the page is slow and some invoices fail to generate
+#TODO: Add an "issued" flag on input INVOICE_DATA_PATH json file so that we can rerun with the same json and ignore already issued invoices
+
 def parse_args():
     parser = RichArgumentParser(description='''[bold cyan]
  █████╗ ██╗   ██╗████████╗ ██████╗ ██████╗ ██╗██╗      █████╗ ███╗   ██╗ ██████╗███████╗ ██████╗
