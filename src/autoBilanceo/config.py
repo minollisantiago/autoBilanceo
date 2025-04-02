@@ -1,13 +1,18 @@
 from pathlib import Path
+from importlib import resources
 
-# Base paths
-BASE_DIR = Path(__file__).parent
+def get_package_data_path(resource_path: str) -> Path:
+    """Get the absolute path to a resource within the package's data directory."""
+    with resources.path('autoBilanceo.data', resource_path) as path:
+        return path
+
+# Base paths - using package resources
+DATA_DIR = resources.files('autoBilanceo') / 'data'
 
 # Data paths
-DATA_DIR = BASE_DIR / "data"
-TEMPLATE_PATH = DATA_DIR / "invoice_testing_template.json"
-INVOICE_DATA_PATH = DATA_DIR / "invoice_data.json"
-DOWNLOADS_PATH = DATA_DIR / "comprobantes"
+TEMPLATE_PATH = get_package_data_path('invoice_testing_template.json')
+INVOICE_DATA_PATH = get_package_data_path('invoice_data.json')
+DOWNLOADS_PATH = get_package_data_path('comprobantes')
 
 # Prod Configuration
 HEADLESS = True
