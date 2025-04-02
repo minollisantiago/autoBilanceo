@@ -3,7 +3,7 @@ import asyncio
 import json
 from pathlib import Path
 from playwright.async_api import Page
-from .utils.human_type import human_type
+from ..utils.human_type import human_type
 from ..models.cuit import create_cuit_number
 
 class AFIPAuthenticator:
