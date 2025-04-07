@@ -11,6 +11,8 @@ from .config import (
 )
 # Warning filters are automatically applied when importing config
 
+#TODO: Added ventana_confirmacion.html element to inspect and verify the confirmation of the invoice generation, to avoid issues with false negatives if we cant generate the pdf due to a timeout
+
 #TODO: Add retring loops, for when the page is slow and some invoices fail to generate
 #TODO: Add an "issued" flag on input INVOICE_DATA_PATH json file so that we can rerun with the same json and ignore already issued invoices
 #TODO: Ive noticed that we may encounter an issue where the invoice IS GENERATED but the process throws an error because either due to a timeout or 

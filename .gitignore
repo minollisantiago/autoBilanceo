@@ -25,3 +25,6 @@ src/autoBilanceo/data/comprobantes/*
 
 # FirefoxDriver cache
 .geckodriver/
+# Specific HTML file to ignore
+src/autoBilanceo/ventana_confirmacion.html
+
