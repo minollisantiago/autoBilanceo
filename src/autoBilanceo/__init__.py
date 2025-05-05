@@ -15,7 +15,7 @@ from .config import (
 
 #TODO: Add retring loops, for when the page is slow and some invoices fail to generate
 #TODO: Add an "issued" flag on input INVOICE_DATA_PATH json file so that we can rerun with the same json and ignore already issued invoices
-#TODO: Ive noticed that we may encounter an issue where the invoice IS GENERATED but the process throws an error because either due to a timeout or 
+#TODO: Ive noticed that we may encounter an issue where the invoice IS GENERATED but the process throws an error because either due to a timeout or
 #TODO: something else, we fail to download the pdf and store it on the data/ folder. Here is the error message we get:
 #📄 Downloading invoice PDF...
 #⨯ Failed to confirm invoice generation for CUIT 20326832392: Timeout 30000ms exceeded while waiting for event "download"

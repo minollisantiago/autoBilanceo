@@ -64,19 +64,19 @@ class RichArgumentParser(argparse.ArgumentParser):
         )
         tests_table.add_row(
             "test_comp_batch",
-            "Test batch processing of multiple invoices"
+            "Test batch processing of multiple invoices (no invoice issuance)"
         )
         tests_table.add_row(
             "test_comp_single",
-            "Test single invoice processing"
+            "Test single invoice processing (no invoice issuance)"
         )
         tests_table.add_row(
             "test_comp_batch_complete",
-            "Test complete batch processing workflow"
+            "Test complete batch processing workflow (with invoice issuance)"
         )
         tests_table.add_row(
             "test_comp_single_complete",
-            "Test complete single invoice workflow"
+            "Test complete single invoice workflow (with invoice issuance)"
         )
         tests_table.add_row(
             "test_comp_nav",

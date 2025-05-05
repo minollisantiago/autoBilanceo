@@ -162,8 +162,11 @@ class InvoiceBatchProcessor:
                     operator = AFIPOperator(service_page)
 
                     # Step 1: Navigate to invoice generation page
-                    step_1_args = {"verbose": self.verbose}
-                    if not await operator.execute_operation(navigate_to_invoice_generator, step_1_args, verbose=self.verbose):
+                    step1_args = {
+                        "company_name": invoice_data["issuer"]["nombre"],
+                        "verbose": self.verbose
+                    }
+                    if not await operator.execute_operation(navigate_to_invoice_generator, step1_args, verbose=self.verbose):
                         raise Exception("Navigation to invoice generator failed")
 
                     # Step 2: Select invoice type
@@ -221,7 +224,7 @@ class InvoiceBatchProcessor:
                             "verbose": self.verbose
                         }
                         if not await operator.execute_operation(confirm_invoice_generation, step6_args, verbose=self.verbose):
-                            raise Exception(f"Invoice generation failed")
+                            raise Exception(f"Invoice pdf download failed")
 
                     result["status"] = "success"
 

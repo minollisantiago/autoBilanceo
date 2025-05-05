@@ -1,6 +1,7 @@
 import asyncio
+from pathlib import Path
 from ....lib import AFIPAuthenticator, BrowserSetup, AFIPNavigator, AFIPOperator
-from ....lib.services.comprobantes import verify_rcel_page, navigate_to_invoice_generator
+from ....lib.services.comprobantes import verify_rcel_page, navigate_to_invoice_generator, InvoiceInputHandler
 from ....config import TEST_HEADLESS, TEST_VERBOSE
 
 async def main():
@@ -10,7 +11,15 @@ async def main():
         raise Exception("⨯ Browser setup failed")
 
     try:
-        issuer_cuit = "20328619548"
+        # Load invoice data
+        invoice_template_path = (
+            Path(__file__).parent.parent.parent.parent / "data" / "invoice_testing_template.json"
+        )
+        input_handler = InvoiceInputHandler(invoice_template_path)
+
+        # Get first invoice data for testing
+        invoice_data = input_handler.get_invoice_data(0)
+        issuer_cuit = invoice_data["issuer"]["cuit"]
 
         # Authentication
         auth = AFIPAuthenticator(page)
@@ -37,7 +46,11 @@ async def main():
             operator = AFIPOperator(service_page)
 
             # Step 1: Navigate to invoice generation page
-            step_1 = await operator.execute_operation(navigate_to_invoice_generator, {}, verbose=TEST_VERBOSE)
+            step1_args = {
+                "company_name": invoice_data["issuer"]["nombre"],
+                "verbose": TEST_VERBOSE
+            }
+            step_1 = await operator.execute_operation(navigate_to_invoice_generator, step1_args, verbose=TEST_VERBOSE)
             if not step_1:
                 raise Exception("⨯ Failed to navigate to invoice generator")
             print("✓ Successfully navigated to invoice generator")

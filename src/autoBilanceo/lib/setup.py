@@ -1,5 +1,4 @@
 import random
-import asyncio
 from pathlib import Path
 from typing import Optional
 from playwright._impl._api_structures import ViewportSize

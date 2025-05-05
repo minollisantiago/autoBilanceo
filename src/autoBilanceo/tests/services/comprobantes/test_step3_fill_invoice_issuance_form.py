@@ -52,25 +52,29 @@ async def main():
             operator = AFIPOperator(service_page)
 
             # Step 1: Navigate to invoice generation page
-            step_1 = await operator.execute_operation(navigate_to_invoice_generator, {}, verbose=TEST_VERBOSE)
+            step1_args = {
+                "company_name": invoice_data["issuer"]["nombre"],
+                "verbose": TEST_VERBOSE
+            }
+            step_1 = await operator.execute_operation(navigate_to_invoice_generator, step1_args, verbose=TEST_VERBOSE)
             if not step_1:
                 raise Exception("⨯ Failed to navigate to invoice generator")
             print("✓ Successfully navigated to invoice generator")
 
             # Step 2: Select invoice type
-            step_2_args = {
+            step2_args = {
                 "punto_venta": invoice_data["invoice"]["punto_venta"],
                 "issuer_type": invoice_data["issuer"]["type"],
                 "invoice_type": invoice_data["invoice"]["type"],
                 "verbose": TEST_VERBOSE
             }
-            step_2 = await operator.execute_operation(select_invoice_type, step_2_args, verbose=TEST_VERBOSE)
+            step_2 = await operator.execute_operation(select_invoice_type, step2_args, verbose=TEST_VERBOSE)
             if not step_2:
                 raise Exception("⨯ Failed to select invoice type")
             print("✓ Successfully selected invoice type")
 
             # Step 3: Fill form 1 - invoice issuance data
-            step_3_args = {
+            step3_args = {
                 "issuance_date": invoice_data["invoice"]["issuance_date"],
                 "concept_type": invoice_data["invoice"]["concept_type"],
                 "start_date": invoice_data["invoice"]["service_period"]["start_date"],
@@ -78,7 +82,7 @@ async def main():
                 "payment_due_date": invoice_data["invoice"]["service_period"]["payment_due_date"],
                 "verbose": True
             }
-            step_3 = await operator.execute_operation(fill_invoice_issuance_data_form, step_3_args, verbose=TEST_VERBOSE)
+            step_3 = await operator.execute_operation(fill_invoice_issuance_data_form, step3_args, verbose=TEST_VERBOSE)
             if not step_3:
                 raise Exception("⨯ Failed to fill the invoice issuance data form")
             print("✓ Successfully filled issuance data form")

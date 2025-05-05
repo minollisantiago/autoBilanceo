@@ -51,19 +51,23 @@ async def main():
             operator = AFIPOperator(service_page)
 
             # Step 1: Navigate to invoice generation page
-            step_1 = await operator.execute_operation(navigate_to_invoice_generator, {}, verbose=TEST_VERBOSE)
+            step1_args = {
+                "company_name": invoice_data["issuer"]["nombre"],
+                "verbose": TEST_VERBOSE
+            }
+            step_1 = await operator.execute_operation(navigate_to_invoice_generator, step1_args, verbose=TEST_VERBOSE)
             if not step_1:
                 raise Exception("⨯ Failed to navigate to invoice generator")
             print("✓ Successfully navigated to invoice generator")
 
             # Step 2: Select invoice type
-            operation_args = {
+            step2_args = {
                 "punto_venta": invoice_data["invoice"]["punto_venta"],
                 "issuer_type": invoice_data["issuer"]["type"],
                 "invoice_type": invoice_data["invoice"]["type"],
                 "verbose": TEST_VERBOSE
             }
-            step_2 = await operator.execute_operation(select_invoice_type, operation_args, verbose=TEST_VERBOSE)
+            step_2 = await operator.execute_operation(select_invoice_type, step2_args, verbose=TEST_VERBOSE)
             if not step_2:
                 raise Exception("⨯ Failed to select invoice type")
             print("✓ Successfully selected invoice type")
